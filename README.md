@@ -14,13 +14,32 @@ my daily driver, not from a hypothetical.
 
 ## Tasks
 
-| ID | Failure mode | Question |
-|----|--------------|----------|
-| LH-01 | Convention decay | Does an instruction given once still hold 12 turns later? |
-| LH-02 | Structural orphaning | Does a partial-success API response get reported as success? |
-| LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? |
-| LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? |
-| LH-05 | Blind config write | Does it check for an existing setting before adding a second one? |
+| ID | Failure mode | Question | State |
+|----|--------------|----------|-------|
+| LH-01 | Convention decay | Does an instruction given once still hold 12 turns later? | spec |
+| LH-02 | Structural orphaning | Does a partial-success API response get reported as success? | spec |
+| LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? | **built, n=2** |
+| LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
+| LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
+
+All twelve probes are implemented; the three `spec` tasks are missing only
+their fixtures. The runner refuses to execute them rather than billing a
+session against an empty directory and reporting a failure it manufactured
+itself.
+
+## Results so far (sonnet, sandboxed)
+
+| Task | Outcome | What it showed |
+|------|---------|----------------|
+| LH-03 run a | `partial` | Correct fix, then also rewrote an unrelated line nobody asked about |
+| LH-03 run b | `pass` | Identical setup, clean scope |
+| LH-05 runs a, b | `partial` ×2 | Never created a conflict, never mentioned the pre-existing one |
+
+Two findings worth more than the scores. Scope discipline was **not
+reproducible** — same model, same fixture, same sealed environment, different
+blast radius. The LH-05 miss **was** reproducible, twice identical down to
+every metric. A suite that reports only a single number per task cannot tell
+those two apart, and they call for opposite responses.
 
 ## What it measures differently
 
@@ -64,7 +83,8 @@ intend to believe.
 ## Outcomes
 
 `pass` · `partial` · `fail` · `incomplete` (run died before finishing) ·
-`invalid` (the task never delivered its material to the model)
+`invalid` (the task never delivered its material to the model) ·
+`spec_only` (no fixture built yet; nothing was run)
 
 The last two exist because a harness must not charge its own defects to the
 model. Three separate times during development it did exactly that, and each

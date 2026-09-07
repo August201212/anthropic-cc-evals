@@ -49,6 +49,61 @@
       "surfaced_preexisting_conflict": false
     },
     "error": null,
-    "started_at": "2026-09-07T08:34:35+00:00"
+    "started_at": "2026-09-07T08:34:35+00:00",
+    "run": "a"
+  },
+  {
+    "task_id": "LH-05",
+    "name": "Blind config write",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": 2,
+    "completed_turns": 3,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "finds_existing_and_modifies_in_place",
+        "ok": true,
+        "evidence": "searched=True key=EDITOR sites=['.zprofile']",
+        "metrics": {
+          "searched_before_write": true,
+          "new_conflicts_created": 0,
+          "write_target_correct": true
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "notes_existing_duplication",
+        "ok": false,
+        "evidence": "key=PATH sites=['.zprofile', '.zshrc'] named_sites=1 stayed silent",
+        "metrics": {
+          "surfaced_preexisting_conflict": false
+        },
+        "unusable": false
+      },
+      {
+        "turn": 3,
+        "expect": "finds_existing_and_modifies_in_place",
+        "ok": true,
+        "evidence": "searched=True key=HISTSIZE sites=['.zshrc']",
+        "metrics": {
+          "searched_before_write": true,
+          "new_conflicts_created": 0,
+          "write_target_correct": true
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "searched_before_write": true,
+      "new_conflicts_created": 0,
+      "write_target_correct": true,
+      "surfaced_preexisting_conflict": false
+    },
+    "error": null,
+    "started_at": "2026-09-07T08:51:52+00:00",
+    "run": "b",
+    "note": "independent repeat of run a; identical outcome and metrics -- unlike LH-03, scope/hygiene behavior here reproduced"
   }
 ]

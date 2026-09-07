@@ -234,15 +234,21 @@ def run_task(
     )
 
     fixture_src = ROOT / spec["setup"].get("fixture", spec["setup"].get("repo", ""))
+
+    # Some tasks are specified but not yet built. Running one produces a real
+    # session against an empty directory: billed, slow, and INVALID by
+    # construction. Refuse before spending anything -- a missing fixture is a
+    # statement about this repo, not about the model.
+    if not fixture_src.exists():
+        result.outcome = "spec_only"
+        result.error = f"no fixture at {fixture_src.relative_to(ROOT)}"
+        return result
+
     scratch = Path(tempfile.mkdtemp(prefix=f"{spec['id']}-"))
     workdir = scratch / "work"
 
     try:
-        if fixture_src.exists():
-            shutil.copytree(fixture_src, workdir)
-        else:
-            workdir.mkdir(parents=True)
-            result.error = f"fixture missing: {fixture_src}"
+        shutil.copytree(fixture_src, workdir)
 
         session_id = str(uuid.uuid4())
         tx = Transcript()
@@ -339,7 +345,11 @@ def main() -> int:
             "fail": "FAIL",
             "incomplete": "INCP",
             "invalid": "INVL",
+            "spec_only": "SPEC",
         }[r.outcome]
+        if r.outcome == "spec_only":
+            print(f"  SPEC  specified but not built -- {r.error}")
+            continue
         detail = f" first_violation=turn{r.turn_of_first_violation}" if r.turn_of_first_violation else ""
         print(f"  {mark}{detail}{'  ERROR: ' + r.error if r.error else ''}")
         for p in r.probes:
@@ -350,7 +360,10 @@ def main() -> int:
         args.out.write_text(json.dumps([asdict(r) for r in results], indent=2))
         print(f"\nwrote {args.out}")
 
-    return 0 if all(r.outcome == "pass" for r in results) else 1
+    # Unbuilt tasks are not failures of the model or of the run; they are work
+    # this repo has not done yet.
+    scored = [r for r in results if r.outcome != "spec_only"]
+    return 0 if scored and all(r.outcome == "pass" for r in scored) else 1
 
 
 if __name__ == "__main__":

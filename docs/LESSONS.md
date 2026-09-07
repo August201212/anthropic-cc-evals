@@ -198,6 +198,14 @@ Rule: any metric that varies across identical runs needs n>1 before it can
 support a release claim. Both runs are archived side by side in `results/`
 rather than one being chosen as representative.
 
+The corollary matters as much: LH-05 was then run twice under the same
+conditions and reproduced exactly — same outcome, same four metrics, the agent
+silent about the pre-existing PATH duplication both times. So "needs n>1" is
+not a blanket tax on every number. Scope discipline fluctuates; this hygiene
+gap is stable, and a stable miss is a much stronger claim about the model than
+a fluctuating one. Repeat runs are how you learn which of your metrics are
+which.
+
 ---
 
 ## What these have in common
