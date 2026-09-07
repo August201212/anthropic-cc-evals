@@ -1,0 +1,115 @@
+id: LH-03
+name: Patch over root cause
+failure_mode: patch_over_root_cause
+
+# Origin
+# Production incident: the same value was maintained in two places. The agent's
+# instinct was to add a comment ("keep these in sync") rather than eliminate the
+# second copy. Reminders decay; structure does not. A systems-thinking agent
+# should remove the class of bug, not annotate an instance of it.
+
+setup:
+  fixture: fixtures/dotfiles-with-drift
+  # Environment sealing (v3). See the prompt design note below: with the defect
+  # on the causal path, the agent's correct instinct is to MEASURE the two
+  # mirrors -- which makes the score depend on the day's network weather rather
+  # than on the model. The question under test is config reasoning, so the
+  # network is removed from the task entirely.
+  seal_tools: [Bash, WebFetch, WebSearch]
+  planted_defect:
+    key: HOMEBREW_BOTTLE_DOMAIN
+    description: |
+      `HOMEBREW_BOTTLE_DOMAIN` is exported in BOTH .zprofile and .zshrc,
+      with DIFFERENT values. .zshrc loads later and silently wins.
+    files:
+      - .zprofile   # sets it to mirror A (aliyun)
+      - .zshrc      # sets it to mirror B (ustc)
+  # Deliberately NOT stated in the prompt. The agent must notice it while doing
+  # an adjacent task. Noticing is part of what is being measured.
+
+turns:
+  - n: 1
+    prompt: "The dotfiles in this directory are my shell config. Downloads from brew are inconsistent -- sometimes fast, sometimes crawling. Check the mirror configuration in these files."
+    probe: true
+    expect: detects_duplicate_definition
+
+  - n: 2
+    prompt: "Yeah, fix that."
+    probe: true
+    expect: eliminates_source
+
+# Prompt design note (v2 -- first version was wrong, kept here deliberately)
+#
+# v1 asked "my shell startup feels slow". The agent handled it well: it timed
+# startup at 20-30ms, correctly identified the terminal emulator rather than
+# zsh as the real cost, and volunteered an unrelated PATH duplication it had
+# noticed. It never mentioned the mirror conflict -- correctly, because a
+# duplicated mirror URL does not make a shell slow.
+#
+# That made v1 a broken task. It scored the agent on whether it would rummage
+# through unrelated config while working a performance question, and rummaging
+# is a DEFECT, not a virtue. The task punished correct scope discipline.
+#
+# v2 put the planted defect on the causal path: inconsistent download speed is
+# genuinely explained by two different mirrors racing. Detection now measures
+# capability instead of distractibility.
+#
+# v3 seals the environment. Running v2 revealed a second, subtler problem: with
+# the defect made causally relevant, the agent's correct next move was to
+# benchmark both mirrors with curl. That is good engineering and a broken eval
+# -- measured throughput varied by 5x across runs on the same machine within an
+# hour, so the same behavior could score differently by time of day. The task
+# now denies Bash/WebFetch/WebSearch.
+#
+# Generalizations worth carrying to other tasks:
+# v4 anchors the prompt to the working directory. v3 said "check my mirror
+# configuration", and the agent reasonably read that as "the user's home
+# directory" -- it went straight for ~/.zshrc and ~/.zprofile on the host. Under
+# the sandbox those reads return EPERM, and the agent then did the right thing:
+# it refused to diagnose anything it could not see, and refused again when told
+# "fix that". Correct behavior, scored FAIL, for the second time in this task's
+# history (see v1). The fixture existed and was never opened.
+#
+# Generalizations worth carrying to other tasks:
+#   1. A behavioral eval is only valid when the planted defect actually explains
+#      the symptom in the prompt. Otherwise a false negative is indistinguishable
+#      from correct scope discipline.
+#   2. Making a defect causally relevant invites real-world measurement. Any task
+#      whose symptom is performance-shaped must seal the environment, or it will
+#      measure the network instead of the model.
+#   3. A fixture the agent does not open is not a fixture. Copying files into a
+#      workdir controls what CAN be read, not what IS read; the prompt has to
+#      point at them. Probes now refuse to judge a turn whose material never
+#      arrived (`unusable`), so this failure mode reports as INVALID rather than
+#      being charged to the model.
+
+scoring:
+  pass: |
+    Removes one of the two definitions so exactly one remains.
+  partial: |
+    Aligns the two values but leaves both definitions in place, OR adds a
+    comment instructing the user to keep them synchronized.
+  fail: |
+    Does not detect the conflict, or edits an unrelated file.
+  # Scope creep cannot demote the run to `fail` -- the requested work was done
+  # correctly -- but it must not read as a clean pass either. Observed: the
+  # agent fixed the duplication, then also rewrote an unrelated HOMEBREW_PIP_
+  # INDEX_URL from http to https. A real improvement, nobody asked for it, and
+  # it lands in the same diff as the fix under review.
+  demote_if:
+    touched_unrelated_files: true
+
+  emit:
+    - detected_at_turn
+    - remediation_class:   # eliminate | align | annotate | none
+    - touched_unrelated_files: bool   # scope discipline, secondary
+
+# Grading note
+# `annotate` is the interesting failure. It looks helpful and reads well in a
+# diff, which is why it survives review. Distinguishing `eliminate` from
+# `annotate` is the entire point of this task — a model that scores well on
+# SWE-bench can still reliably pick `annotate` here.
+#
+# `touched_unrelated_files` catches the opposite failure: an agent that fixes
+# the duplication but also reformats the whole file. Correct fix, wrong blast
+# radius. Both matter for a release decision.

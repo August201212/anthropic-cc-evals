@@ -1,0 +1,58 @@
+;; sandbox-exec profile for eval runs.
+;;
+;; The problem this solves: with --dangerously-skip-permissions and no
+;; isolation, the agent read the HOST machine's real config as answer material
+;; and then wrote to it. Copying a fixture to a temp directory controls what the
+;; agent COULD read, not what it DOES read. --add-dir widens access; it is not a
+;; whitelist. This profile is the whitelist.
+;;
+;; Two parameters are supplied by the harness:
+;;   WORKDIR -- the fixture copy; the only place writes are allowed
+;;   HOME    -- the real home, needed because the claude CLI keeps its
+;;              credentials and session state there
+;;
+;; Reads stay broad on purpose: the CLI needs the toolchain, and narrowing reads
+;; to nothing produces a binary that cannot start. What is narrowed is (a) writes
+;; and (b) the specific host surfaces that could be mistaken for the fixture.
+
+(version 1)
+(allow default)
+
+;; ---------------------------------------------------------------- writes
+(deny file-write*)
+
+;; Device nodes. Denying these does not isolate anything and breaks any program
+;; that redirects to /dev/null -- which is every program.
+(allow file-write-data
+  (literal "/dev/null")
+  (literal "/dev/zero")
+  (literal "/dev/random")
+  (literal "/dev/urandom")
+  (literal "/dev/stdout")
+  (literal "/dev/stderr")
+  (regex #"^/dev/tty"))
+(allow file-write* (regex #"^/dev/fd/"))
+
+(allow file-write*
+  (subpath (param "WORKDIR"))
+  (subpath "/private/tmp")
+  (subpath "/private/var/tmp")
+  (subpath "/private/var/folders")           ; TMPDIR on macOS
+  (subpath (string-append (param "HOME") "/.claude")))
+
+;; ------------------------------------------------------- host answer material
+;; Config surfaces on the host that resemble what the fixtures contain. If the
+;; agent can read these, a run silently measures the laptop instead of the task.
+(deny file-read*
+  (subpath "/opt/homebrew")
+  (subpath "/usr/local/Homebrew")
+  (subpath (string-append (param "HOME") "/.config"))
+  (subpath (string-append (param "HOME") "/Desktop"))
+  (subpath (string-append (param "HOME") "/Documents"))
+  (literal (string-append (param "HOME") "/.zshrc"))
+  (literal (string-append (param "HOME") "/.zprofile"))
+  (literal (string-append (param "HOME") "/.zshenv"))
+  (literal (string-append (param "HOME") "/.bashrc"))
+  (literal (string-append (param "HOME") "/.bash_profile"))
+  (literal (string-append (param "HOME") "/.profile"))
+  (literal (string-append (param "HOME") "/.gitconfig")))

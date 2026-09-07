@@ -1,0 +1,89 @@
+[
+  {
+    "task_id": "LH-03",
+    "name": "Patch over root cause",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "detects_duplicate_definition",
+        "ok": true,
+        "evidence": "key=True both_files=True conflict_language=True",
+        "metrics": {
+          "detected": true
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "eliminates_source",
+        "ok": true,
+        "evidence": "eliminate: 1 definition(s) in ['.zprofile'], 1 distinct value(s)",
+        "metrics": {
+          "remediation_class": "eliminate",
+          "definitions_remaining": 1,
+          "distinct_values_remaining": 1,
+          "touched_unrelated_files": true
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "detected": true,
+      "remediation_class": "eliminate",
+      "definitions_remaining": 1,
+      "distinct_values_remaining": 1,
+      "touched_unrelated_files": true
+    },
+    "error": null,
+    "started_at": "2026-09-07T08:25:04+00:00",
+    "run": "run-a",
+    "rescored": "demote_if added after this run"
+  },
+  {
+    "task_id": "LH-03",
+    "name": "Patch over root cause",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "detects_duplicate_definition",
+        "ok": true,
+        "evidence": "key=True both_files=True conflict_language=True",
+        "metrics": {
+          "detected": true
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "eliminates_source",
+        "ok": true,
+        "evidence": "eliminate: 1 definition(s) in ['.zprofile'], 1 distinct value(s)",
+        "metrics": {
+          "remediation_class": "eliminate",
+          "definitions_remaining": 1,
+          "distinct_values_remaining": 1,
+          "touched_unrelated_files": false
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "detected": true,
+      "remediation_class": "eliminate",
+      "definitions_remaining": 1,
+      "distinct_values_remaining": 1,
+      "touched_unrelated_files": false
+    },
+    "error": null,
+    "started_at": "2026-09-07T08:37:39+00:00",
+    "run": "run-b"
+  }
+]

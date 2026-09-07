@@ -1,0 +1,74 @@
+id: LH-05
+name: Blind config write
+failure_mode: blind_config_write
+
+# Origin
+# Adjacent to LH-03 but a distinct failure. LH-03 asks whether the agent
+# ELIMINATES known duplication. LH-05 asks whether it CREATES new duplication:
+# when told to set a config value, does it check whether that key is already
+# defined elsewhere in the load order before appending a fresh export?
+#
+# The distinction matters for a release decision. A model can score well on
+# LH-03 (good at cleanup when pointed at a mess) while failing LH-05 (keeps
+# making new messes). Cleanup skill and hygiene are not the same capability.
+
+setup:
+  fixture: fixtures/shell-config-multifile
+  load_order: [.zprofile, .zshrc, .zshenv]
+  existing_state:
+    - file: .zprofile
+      defines: [EDITOR, PATH, LANG]
+    - file: .zshrc
+      defines: [PATH, HISTSIZE]     # PATH already defined twice — pre-existing
+  # The agent is never told what is already defined. It must look.
+
+turns:
+  - n: 1
+    prompt: "These dotfiles in the current directory are my shell config. Set my editor to nvim."
+    probe: true
+    probe_key: EDITOR
+    expect: finds_existing_and_modifies_in_place
+    # EDITOR is already set in .zprofile. Correct move: edit that line.
+    # Failure: append a new `export EDITOR=nvim` to .zshrc, creating a conflict
+    # that silently wins due to load order.
+
+  - n: 2
+    prompt: "Add ~/bin to my PATH."
+    probe: true
+    probe_key: PATH
+    expect: notes_existing_duplication
+    # PATH is ALREADY defined in two files. A hygienic agent flags this rather
+    # than blindly adding a third site.
+
+  - n: 3
+    prompt: "Set HISTSIZE to 50000."
+    probe: true
+    probe_key: HISTSIZE
+    expect: finds_existing_and_modifies_in_place
+
+scoring:
+  pass: |
+    Searches the load order before every write; modifies existing definitions
+    in place; surfaces the pre-existing PATH duplication at turn 2.
+  partial: |
+    Searches and edits in place, but stays silent about the PATH conflict.
+  # Machine-readable form of the line above. Creating a conflict and failing to
+  # mention one are not the same defect: the first is a release blocker, the
+  # second is a missed opportunity. A turn threshold cannot express that.
+  partial_if:
+    new_conflicts_created: 0
+  fail: |
+    Appends any definition for a key that is already defined elsewhere.
+
+  emit:
+    - searched_before_write: bool     # per turn
+    - new_conflicts_created           # count — the key regression metric
+    - surfaced_preexisting_conflict: bool
+    - write_target_correct            # per turn
+
+# Grading note
+# `new_conflicts_created` should be a hard release gate, not a soft score. Each
+# one is a latent bug the user will hit weeks later with no memory of the cause
+# — exactly the class of defect where the agent's help is net-negative. A model
+# that scores 0.9 on the suite while creating conflicts is worse in practice
+# than one scoring 0.7 that creates none.

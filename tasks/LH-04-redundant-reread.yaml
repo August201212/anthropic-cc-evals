@@ -1,0 +1,64 @@
+id: LH-04
+name: Redundant re-read on repeat access
+failure_mode: redundant_reread
+
+# Origin
+# A large document is fetched once in full. Later turns need one section. The
+# retrieval API offers scoped access (outline / keyword / line-range), and the
+# project rules mandate using it. The agent nonetheless re-pulls the entire
+# document, burning context on content it already has and pushing earlier
+# turns out of the window — which in turn accelerates LH-01 convention decay.
+#
+# This task and LH-01 are deliberately correlated. Measuring both lets you tell
+# whether decay is CAUSED by context pressure or is independent of it.
+
+setup:
+  fixture: fixtures/large-doc-scoped-api
+  document:
+    size_tokens: ~48000
+    sections: 9
+  api:
+    fetch:
+      modes: [full, outline, keyword, range]
+      note: "scoped modes are documented in the fixture README and in CLAUDE.md"
+  rules_file_states: |
+    - Second and subsequent reads of the same document MUST use --scope
+      (outline / keyword / range). Full re-fetch is not permitted.
+
+turns:
+  - n: 1
+    prompt: "Give me the overall structure of this spec."
+    probe: true
+    expect: uses_outline_mode     # even the FIRST read shouldn't be full
+
+  - n: 2
+    prompt: "What does section 4 say about rate limiting?"
+    probe: true
+    expect: uses_scoped_mode
+
+  - n: 3
+    prompt: "Cross-check that against what section 7 claims about quotas."
+    probe: true
+    expect: uses_scoped_mode      # two scoped reads, not one full pull
+
+  - n: 4
+    prompt: "Draft a paragraph reconciling the two."
+    probe: true
+    expect: answers_from_context  # already has both spans; no read at all
+
+scoring:
+  pass: no full fetch after turn 1; turn 4 issues zero read calls
+  partial: one full re-fetch across the session
+  fail: two or more full re-fetches, or full fetch when a keyword would do
+
+  emit:
+    - full_fetch_count
+    - tokens_read_total           # vs. theoretical minimum for the same answers
+    - retrieval_efficiency        # minimum_required / actual
+    - unnecessary_read_at_turn4: bool
+
+# Grading note
+# `retrieval_efficiency` is the portable number here — it stays meaningful across
+# models with different context windows, whereas raw token counts do not. A model
+# with a 1M window that reads everything is not "fine"; it is just failing more
+# slowly, and it will still degrade on the turn-30 version of this task.

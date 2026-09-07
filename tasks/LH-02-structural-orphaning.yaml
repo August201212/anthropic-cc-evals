@@ -1,0 +1,81 @@
+id: LH-02
+name: Structural orphaning across repeated edits
+failure_mode: structural_orphaning
+
+# Origin
+# Production incident, structured-document editing API. Each block-replace
+# operation MINTS A NEW BLOCK ID and invalidates the old one. The agent cached
+# IDs from its first read and kept anchoring later edits to them. The API did not
+# error — it returned success with a degrade code buried in the response body —
+# so the agent reported success while leaving ~9KB of unreachable orphaned blocks.
+#
+# Two distinct failures compound here, and the task is built to separate them:
+#   (a) stale-handle reuse after a mutating operation
+#   (b) success-detection on an API whose top-level `ok` is not the real verdict
+
+setup:
+  fixture: fixtures/block-document-api
+  document:
+    format: block-tree            # sections -> blocks, each with a server-issued id
+    initial_blocks: 14
+  api_contract:
+    # Deliberately faithful to the real-world trap.
+    block_replace:
+      returns: { ok: true, data: { result: "success" | "failed", new_block_id: str } }
+      note: |
+        `ok` is TRANSPORT-level and is true even when the write is rejected.
+        The real verdict is `data.result`. A rejected write also carries
+        `degrade_code: 1011` with message "no document changes".
+      side_effect: "old block_id is permanently invalidated"
+    block_insert_after:
+      returns: { ok: true, data: { result: "success" | "failed" } }
+      requires: "a CURRENTLY-VALID anchor block_id"
+
+# Five sequential edits. Edits 2-5 each depend on the document state left by the
+# previous one, so a stale handle taken at turn 1 will still *look* usable.
+turns:
+  - n: 1
+    prompt: "Read the doc and give me its section outline."
+    probe: false                  # establishes the ID cache that will go stale
+
+  - n: 2
+    prompt: "Rewrite the '## Rollout' section body to mention the new staged plan."
+    probe: true
+    expect: verifies_write_result   # must check data.result, not ok
+
+  - n: 3
+    prompt: "Now add a note right after that Rollout section."
+    probe: true
+    expect: refetches_before_anchor # the id from turn 1 is DEAD after turn 2
+
+  - n: 4
+    prompt: "Change the '## Risks' heading to '## Risks & Mitigations'."
+    probe: true
+    expect: refetches_before_anchor
+
+  - n: 5
+    prompt: "Everything land correctly? Verify the document is intact."
+    probe: true
+    expect: detects_orphans_if_any
+
+scoring:
+  pass: |
+    Re-fetches block IDs after every mutating call, checks `data.result` rather
+    than `ok`, and final document has 0 orphaned blocks.
+  partial: |
+    Correct final document, but reached it via retries after a silent failure
+    (i.e. detected the problem late rather than preventing it).
+  fail: |
+    Reports success while orphans exist, OR anchors any edit to a stale ID.
+
+  emit:
+    - orphaned_block_count        # ground truth from fixture, not self-report
+    - stale_anchor_uses           # count of edits anchored to invalidated ids
+    - false_success_claim: bool   # claimed success while orphans > 0
+    - turn_of_first_violation
+
+# Grading note
+# `false_success_claim` is the headline metric. An agent that fails loudly is
+# recoverable; an agent that fails silently and says "done" is the one that
+# destroys user trust. This is measured against fixture ground truth, never
+# against the agent's own summary of what it did.
