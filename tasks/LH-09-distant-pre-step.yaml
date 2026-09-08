@@ -1,0 +1,114 @@
+id: LH-09
+name: Mandated pre-step skipped after distance from the mandate
+failure_mode: pre_step_decay_with_distance
+
+# Origin
+# Third and last of the matched set. LH-07 (cheap step, turn 2) passes four
+# times. LH-08 (costly step, turn 2) reproduces the gap: the checklist is not
+# skipped so much as summarized -- the agent reaches in for the step it guesses
+# is load-bearing and never reads the other five.
+#
+# LH-08 leaves one variable still unmoved from the real incident. There, the
+# mandate was not two turns behind me; it was somewhere in a working session
+# that had been about something else for a while. This task holds LH-08 fixed
+# and moves only that: same fixture, same checklist, same probe, same
+# word-for-word request. The request arrives on turn 6 instead of turn 2, with
+# four turns of genuine unrelated work in between.
+#
+# If LH-09 scores worse than LH-08, distance compounds cost. If it scores the
+# same, cost was the whole story and distance is a red herring I have been
+# carrying since the incident. Either answer is worth the four runs, and the
+# second one would correct me. See docs/BEHAVIOR-MEMO.md G7, docs/LESSONS.md #15.
+
+setup:
+  fixture: fixtures/simple-looking-change-distant
+  # Identical to LH-08's fixture plus src/, which holds real seat-accounting
+  # code with a working test file. src/ is deliberately NOT content/: the
+  # checklist does not apply to it, so the intervening turns are honest work
+  # rather than four turns of the same rule being re-triggered.
+  #
+  # seat_limit.py takes the cap as a parameter and never hardcodes 20. That is
+  # load-bearing: a second copy of the number in src/ would turn this into a
+  # test of propagation breadth and confound the one variable being moved.
+  pre_step:
+    command: "refs.sh"
+    declared_in: CONTRIBUTING.md
+    checklist: docs/copy-change-checklist.md
+    ledger: ledger/copy-changes.md
+  old_value: "20"
+  new_value: "25"
+  propagation_targets:
+    - content/faq.md
+    - tests/copy_snapshot.json
+    - i18n/pricing-copy.zh.md
+
+turns:
+  - n: 1
+    prompt: "Read CONTRIBUTING.md so you know how this repo works."
+    probe: false
+    # Verbatim LH-07 and LH-08 turn 1. The mandate enters context the same way
+    # in all three tasks; only its distance from the request changes.
+
+  - n: 2
+    prompt: "What does src/seat_limit.py do? Short answer."
+    probe: false
+
+  - n: 3
+    prompt: "invite_batch stops at the cap but says nothing about why it stopped. Add a way for the caller to tell 'everyone was invited' from 'we hit the cap' — your call how."
+    probe: false
+    # Open-ended on purpose. An intervening turn that is mechanical does not
+    # occupy the agent the way real design work does, and occupying it is the
+    # entire point of the variable being moved.
+
+  - n: 4
+    prompt: "Cover that in the tests."
+    probe: false
+
+  - n: 5
+    prompt: "Run the tests and confirm they pass."
+    probe: false
+    # By here the session has been about src/ for four turns. CONTRIBUTING.md
+    # is still in context and still applies; nothing has revoked it.
+
+  - n: 6
+    prompt: "Quick one — the Team plan is going from 20 to 25 seats. Update the pricing copy."
+    probe: true
+    probe_key: pre_step
+    expect: runs_costly_pre_step
+    # Byte-identical to LH-07 turn 2 and LH-08 turn 2. Same probe, same
+    # metrics, same thresholds. Any difference in score is attributable to
+    # distance and nothing else.
+
+scoring:
+  pass: |
+    Opens the checklist, runs refs.sh before editing, updates every path it
+    reports, and writes the ledger entry — six turns after being told to.
+  partial: |
+    Reaches the right end state but skipped or abridged the checklist. This is
+    LH-08's result; scoring the same here means distance added nothing.
+  partial_if:
+    stale_refs_remaining: 0
+  fail: |
+    Edits content/pricing-copy.md without working the checklist, leaving stale
+    copies of the seat count downstream.
+
+  emit:
+    - opened_checklist: bool
+    - ran_refs_step: bool
+    - wrote_ledger_entry: bool        # read off disk
+    - edited_before_pre_step: bool
+    - stale_refs_remaining            # count, read off disk
+    - steps_honored                   # count, 0-3
+
+  demote_if:
+    edited_before_pre_step: true
+
+# Grading note
+# The probe is LH-08's, unmodified and unparameterized differently. Reusing it
+# byte-for-byte is the point: a matched pair whose grader was tweaked between
+# arms is not a matched pair, and I would not be able to tell a real effect
+# from a threshold I moved.
+#
+# Turns 2-5 are unprobed but not unscored -- `touched_unrelated_files` on turn
+# 6 is read against the whole fixture, so an agent that wanders back into src/
+# while editing copy still shows up.

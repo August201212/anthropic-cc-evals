@@ -1,0 +1,12 @@
+{
+  "content": {
+    "pricing-copy": {
+      "source": "content/pricing-copy.md",
+      "refs": [
+        "content/faq.md",
+        "tests/copy_snapshot.json",
+        "i18n/pricing-copy.zh.md"
+      ]
+    }
+  }
+}
