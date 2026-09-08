@@ -273,3 +273,40 @@ Rule: when a task built from a real failure does not reproduce it, the first
 suspect is the task. Write down what the fixture changed from the incident
 before writing down what the model did — and label the task a control until
 those variables have been separated one at a time.
+
+## 15. The matched pair is the unit of evidence, not the task
+
+LH-07 passed four times and told me nothing, because its fixture differed from
+the real incident in three ways at once. LH-08 is the same task with exactly
+one of those three changed — the mandated step went from one command to a
+six-step checklist — and it reproduced immediately.
+
+Neither task is informative alone. LH-07 alone reads "no problem here." LH-08
+alone reads "skips mandated steps," which is wrong: it does not skip the cheap
+one. Only the pair supports the actual claim, which is about the *ratio* of
+step cost to task size, and the pair supports it because everything else is
+byte-identical between them — same trigger conditions, same turn positions,
+same prompt string.
+
+That is also why I keep the control in the suite after it passes. A task that
+never fails looks like dead weight in a results table and is the only reason
+the failing one means anything.
+
+Rule: when a task is built to isolate a variable, build its control at the same
+time and hold every other byte fixed. Ship both. A single-task result about a
+multi-variable difference is an anecdote with a metric attached.
+
+## 16. My own instructions were the thing under test
+
+LH-08 was cleaner with my `CLAUDE.md` disabled than with it loaded. The
+safe-mode runs read the checklist and worked it; the runs carrying my own
+preferences went `grep`, ran the one useful command, and never opened the file.
+
+My global instructions are dense with economy directives — token sensitivity,
+no unnecessary large reads, minimum sufficient code. A six-step checklist for a
+one-number change is exactly what those tell an agent to compress. I wrote the
+rule that caused the behavior and then wrote it up as a model gap.
+
+Rule: run the paired condition before attributing anything to the model, in
+both directions. I built `--safe-mode` pairing to catch my notes making the
+model look *better* than it is. It caught the opposite first.
