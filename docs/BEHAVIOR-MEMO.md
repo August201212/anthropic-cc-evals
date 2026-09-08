@@ -121,10 +121,22 @@ copy. My `CLAUDE.md` rules with explicit triggers are followed; the ambient ones
 are not, and I do not think I would have located that boundary by asking the
 model whether it follows instructions.
 
+**Correction from G7.** That boundary does not hold as stated. G7's rule *is*
+trigger-bound — three enumerated conditions — and is skipped often. So
+trigger-bound is necessary and not sufficient. What separates G1 from G7 looks
+like cost: G1's trigger asks for one cheap read, G7's asks the agent to stop
+and run a whole workflow. A rule with a visible trigger and an expensive body
+gets weighed rather than fired, and the weighing is what goes wrong. I would
+not have found that without filling in both sections.
+
+
 **Coverage gap.** LH-01 measures whether an instruction survives across turns.
 It does not vary the *kind* of instruction. Proposed: paired variants of the
 same requirement, one phrased as a trigger→action rule and one as a standing
 disposition, scored on the same task. Metric: `compliance_by_instruction_shape`.
+Per G7, the same task should vary a third thing — the cost of the action the
+rule demands — since a cheap trigger and an expensive one behave differently
+even when both are trigger-bound.
 If the gap reproduces, it says something actionable about how system prompts
 should be written, independent of any model change.
 
@@ -396,9 +408,47 @@ predictor. See also G2: instruction *shape* — trigger-bound versus ambient —
 appears to matter at least as much, and the two proposed variants belong in the
 same task.
 
-**Frequency.** `[需要你补]`
+**Frequency.** Common, and it did not subside after I wrote the rule down.
+That is the part worth reporting. G1's note suppressed G1; this one is written
+with three explicit trigger conditions, in the same file, loaded on every turn,
+and the step still gets skipped.
 
-**Proposed intervention.** `[需要你补]`
+Which breaks the clean story I was telling in G2. There I concluded that
+trigger-bound rules are followed and ambient ones are not. This rule is
+trigger-bound — the conditions are enumerable and were enumerated — and it is
+not reliably followed. So instruction shape is not the whole variable.
+
+**Proposed intervention — the model must not be the one deciding whether a
+mandatory pre-step applies.** The distinguishing feature here is that the
+conditions were *visible*. This is not a rule that failed to surface; it is a
+rule that surfaced, was checked against the request, and was overridden by the
+agent's own estimate that this particular change was too small to be worth the
+ceremony. The reasoning is locally sound every time it happens — the change
+really did look small — and its cost only appears afterward, in the rework.
+
+That estimate is exactly the thing the pre-step exists to correct. A workflow
+gate is written precisely because the person writing it does not trust an
+in-the-moment size judgment, including their own. An agent that keeps a
+discretionary veto over the gate has, in effect, been given the one input the
+gate was designed to ignore.
+
+So what I want is narrow: when a standing instruction states its own trigger
+conditions and those conditions are met, perceived task size must not be
+admissible as a reason to skip. Not a heavier bias toward following
+instructions in general — a rule about which grounds are allowed to defeat an
+explicit trigger. The agent may still say the step looks disproportionate and
+ask; it may not decide that unilaterally and proceed.
+
+This also predicts where it will keep failing: the smaller and more obvious the
+request, the more confident the skip. The cases that most look like they do not
+need the process are the ones the process was written for, because those are
+the ones people skip.
+
+**Risk if over-corrected.** An agent that mechanically runs every declared
+pre-step regardless of context is slow and, worse, teaches the user to write
+fewer trigger conditions to avoid the tax — which loses the gates that mattered.
+The scope is limited to instructions that state their own triggers; everything
+else stays a judgment call.
 
 ---
 
@@ -419,7 +469,11 @@ creates none. Aggregate scores hide exactly this; a gate does not.
 - `touched_unrelated_files` (G6) — with the caveat that it fluctuates, so a
   single clean run is not evidence
 - `stale_handle_reuse` (G3) — once measurable
-- `turn_of_first_violation` (G7) — as a trend across releases, not a threshold
+- `turn_of_first_violation` (G7) — as a trend across releases, not a threshold.
+  Arguably belongs a tier up: it is frequent, it did not respond to being
+  written down, and its trigger is the class of request that looks least
+  dangerous. I keep it soft only because the cost lands as rework, which is
+  loud and recoverable, not as a silent wrong answer.
 
 **Not gated.**
 - G5 — real, but I do not yet have enough instances to tell frequency from

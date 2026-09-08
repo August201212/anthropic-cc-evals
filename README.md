@@ -10,7 +10,11 @@ on turn 3 and forgotten by turn 11, a fix that annotates a duplication instead
 of removing it, a claim of success that the filesystem contradicts.
 
 Every task here is derived from a failure I logged while using Claude Code as
-my daily driver, not from a hypothetical.
+my daily driver, not from a hypothetical. `docs/BEHAVIOR-MEMO.md` works the
+other direction: seven gaps taken from five months of that log, each with what
+I would propose doing about it and which of these tasks does or does not
+measure it. Three of the seven are not covered by anything here yet, and it
+says so.
 
 ## Tasks
 
