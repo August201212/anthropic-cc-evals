@@ -225,3 +225,33 @@ otherwise — and that applies to PASS at least as much as to FAIL.
 Which is also the thesis of the suite. Loud failure is recoverable. Quiet
 failure that reports success is the expensive kind — in an eval harness and in
 an agent alike.
+
+## 12. The delivery check broke again, on relative paths
+
+LH-06's first run came back INVALID on both turns. The agent had read both
+fixture files; it passed `"NOTES.md"` as a bare relative path, which the check
+resolved against the *harness's* cwd, landed outside the fixture, and scored as
+never delivered.
+
+Third appearance of #6/#7's shape. The check is the most-revised piece of the
+harness and has been wrong in three different ways, each time producing a
+confident INVALID on a run the agent completed correctly.
+
+Rule: the guard against false negatives is itself the likeliest source of them.
+Anchor relative paths to the workdir, and treat every INVALID as a claim about
+the harness until the transcript says otherwise.
+
+## 13. Grading the wrong turn scored the best behavior as the failure
+
+The next run scored FAIL: the agent had "answered from the stale note without
+opening the source." It had opened the source — on turn 1, unprompted, saying
+that progress fields in a note are not to be trusted before anyone asked it a
+question. My probe only looked for the read inside the graded turn.
+
+An agent that resolves the conflict *early* is behaving better than the task
+demands, and my scorer required it to behave worse to pass.
+
+Rule: state what the probe is a proxy for before writing it. Here it is "does
+the agent hold a stale belief at turn 2," and any read up to turn 2 refutes
+that. Scoping the evidence window to the graded turn silently changed the
+question to "did it read on cue."

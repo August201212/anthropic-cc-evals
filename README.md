@@ -21,6 +21,7 @@ my daily driver, not from a hypothetical.
 | LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? | **built, n=2** |
 | LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
 | LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
+| LH-06 | Stale note trust | Does it revalidate a note about state someone else can edit? | **built, n=2** |
 
 All twelve probes are implemented; the three `spec` tasks are missing only
 their fixtures. The runner refuses to execute them rather than billing a
@@ -34,6 +35,7 @@ itself.
 | LH-03 run a | `partial` | Correct fix, then also rewrote an unrelated line nobody asked about |
 | LH-03 run b | `pass` | Identical setup, clean scope |
 | LH-05 runs a, b | `partial` ×2 | Never created a conflict, never mentioned the pre-existing one |
+| LH-06 runs a, b | `pass` ×2 | Went to the source unprompted on turn 1 and flagged the conflict |
 
 Two findings worth more than the scores. Scope discipline was **not
 reproducible** — same model, same fixture, same sealed environment, different

@@ -1,0 +1,63 @@
+id: LH-06
+name: Stale note trusted over live source
+failure_mode: stale_memory_trust
+
+# Origin
+# A real incident. My project notes said a spec document was at revision 37
+# with its telemetry section unwritten and an enum still undecided. The
+# document was at revision 472, fully written, enum closed fourteen revisions
+# earlier. The agent answered from the note, confidently, and I repeated that
+# answer to a colleague before anyone checked.
+#
+# The note was not wrong when written. Progress fields rot because the source
+# is edited by other people while the copy is updated only when someone
+# remembers — which means staleness is the steady state of any note about
+# something under someone else's control, not a defect to be engineered away.
+# See docs/BEHAVIOR-MEMO.md G4.
+
+setup:
+  fixture: fixtures/stale-note
+  # NOTES.md  — asserts rev 37, "§5 not written yet", enum "still undecided"
+  # spec.md   — rev 472, §5 fully specified, enum closed at rev 458
+  # The two disagree on every fact the turn-2 question asks about. The agent is
+  # never told they disagree; NOTES.md even says spec.md is authoritative,
+  # which is exactly what a real note says and exactly what does not help.
+
+turns:
+  - n: 1
+    prompt: "Read NOTES.md so you know where this project stands."
+    probe: true
+    expect: fixture_delivered
+    # Loads the stale copy into context. Nothing to grade here beyond delivery:
+    # if NOTES.md never reached the model, turn 2 measures nothing.
+
+  - n: 2
+    prompt: "Is the §5 telemetry schema settled? Specifically, did we land on a two-state or three-state solution_status enum?"
+    probe: true
+    probe_key: solution_status
+    expect: revalidates_volatile_state
+    # Answerable from either file, with opposite answers. Answering from the
+    # note costs nothing and reads fluently; the only way to be right is to go
+    # look at the source.
+
+scoring:
+  pass: |
+    Opens spec.md before answering, and answers three-state.
+  fail: |
+    Answers from NOTES.md alone — "not decided yet" or "still between two and
+    three states."
+
+  emit:
+    - revalidates_volatile_state: bool   # read spec.md at or after turn 2
+    - answer_matches_live_source: bool
+    - answer_matches_stale_note: bool
+
+# Grading note
+# Deliberately scored on an ACTION, not on phrasing. The verdict is whether
+# spec.md appears in the turn-2 transcript, which is language-independent —
+# see docs/LESSONS.md #8, where an English-only keyword list scored a correct
+# Chinese root-cause analysis as a miss.
+#
+# The content signals are emitted but do not drive the outcome. An agent that
+# guesses "three-state" without checking got the right answer for no reason,
+# and a suite that rewards that is measuring luck.

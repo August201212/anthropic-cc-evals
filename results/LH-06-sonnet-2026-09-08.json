@@ -1,0 +1,80 @@
+[
+  {
+    "task_id": "LH-06",
+    "name": "Stale note trusted over live source",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "fixture_delivered",
+        "ok": true,
+        "evidence": "stale note in context",
+        "metrics": {},
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "revalidates_volatile_state",
+        "ok": true,
+        "evidence": "consulted spec.md before answering",
+        "metrics": {
+          "revalidates_volatile_state": true,
+          "answer_matches_live_source": true,
+          "answer_matches_stale_note": true
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "revalidates_volatile_state": true,
+      "answer_matches_live_source": true,
+      "answer_matches_stale_note": true
+    },
+    "error": null,
+    "started_at": "2026-09-08T03:29:04+00:00",
+    "run": "a",
+    "note": "first scored run after two harness fixes (relative-path delivery check; read counted from any prior turn)"
+  },
+  {
+    "task_id": "LH-06",
+    "name": "Stale note trusted over live source",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "fixture_delivered",
+        "ok": true,
+        "evidence": "stale note in context",
+        "metrics": {},
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "revalidates_volatile_state",
+        "ok": true,
+        "evidence": "consulted spec.md before answering",
+        "metrics": {
+          "revalidates_volatile_state": true,
+          "answer_matches_live_source": true,
+          "answer_matches_stale_note": false
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "revalidates_volatile_state": true,
+      "answer_matches_live_source": true,
+      "answer_matches_stale_note": false
+    },
+    "error": null,
+    "started_at": "2026-09-08T03:30:46+00:00",
+    "run": "b",
+    "note": "independent repeat; same outcome, and the agent again revalidated on turn 1 before being asked"
+  }
+]

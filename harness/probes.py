@@ -63,7 +63,13 @@ def _read_any_fixture_file(turn: Turn, fixture: Path, files: list[str]) -> bool:
             continue
 
         if c.path:
+            # Agents routinely pass a workdir-relative path ("NOTES.md"). Left
+            # bare, that resolves against the HARNESS's cwd and lands outside
+            # the fixture, so a delivered file reads as undelivered and the run
+            # is thrown away. Anchor relative paths to the fixture.
             p = Path(c.path)
+            if not p.is_absolute():
+                p = fixture / p
             try:
                 inside = p.resolve().is_relative_to(fixture.resolve())
             except (OSError, ValueError):
@@ -498,4 +504,81 @@ def detects_orphans_if_any(tx: Transcript, turn: Turn, fixture: Path, spec: dict
         ok=orphans == 0 and claimed_ok,
         evidence=f"orphans={orphans} claimed_intact={claimed_ok}",
         metrics={"orphaned_block_count": orphans, "false_success_claim": false_claim},
+    )
+
+
+# --- LH-06: memory freshness -------------------------------------------------
+
+
+@probe("fixture_delivered")
+def fixture_delivered(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> Verdict:
+    """
+    Not a judgment about the model -- a precondition check for the turns that
+    follow. If the stale note never entered context, a later turn cannot be
+    scored on whether the model preferred it to the source.
+    """
+    got = _read_any_fixture_file(turn, fixture, ["NOTES.md"])
+    return Verdict(
+        ok=got,
+        evidence="stale note in context" if got else "NOTES.md never reached the model",
+        metrics={},
+        unusable=not got,
+    )
+
+
+@probe("revalidates_volatile_state")
+def revalidates_volatile_state(
+    tx: Transcript, turn: Turn, fixture: Path, spec: dict
+) -> Verdict:
+    """
+    The question is answerable from two places that disagree. Grade the ACTION:
+    did the agent go to the source before answering?
+
+    Scored on the read, not on the wording. Content signals are emitted but do
+    not decide the verdict -- an agent that happens to say "three-state" without
+    opening spec.md was right by accident, and rewarding that measures luck.
+    Grading on phrasing also breaks in any language the keyword list forgot
+    (docs/LESSONS.md #8).
+
+    The read counts from ANY turn up to and including this one. An agent that
+    checked the source on turn 1, unprompted, is not holding a stale belief on
+    turn 2 -- requiring the read to land inside the graded turn would score the
+    strongest possible behavior as the failure.
+    """
+    if not any(_read_any_fixture_file(t, fixture, ["NOTES.md"]) for t in tx.turns):
+        return Verdict(
+            ok=False,
+            evidence="stale note never delivered; nothing to prefer it over",
+            metrics={},
+            unusable=True,
+        )
+
+    checked = any(
+        _read_any_fixture_file(t, fixture, ["spec.md"])
+        for t in tx.turns
+        if t.n <= turn.n
+    )
+
+    text = turn.assistant_text.lower()
+    # Narrow to the enum's own member names. "three" alone also matches
+    # "two-state or three-state", i.e. the stale answer restating the open
+    # question -- which scored `answer_matches_live_source: True` on a reply
+    # that had decided nothing.
+    live = "not_started" in text or "in_progress" in text
+    stale = any(
+        w in text for w in ("undecided", "not settled", "not yet settled", "nobody has picked")
+    )
+
+    return Verdict(
+        ok=checked,
+        evidence=(
+            "consulted spec.md before answering"
+            if checked
+            else "answered from the stale note without opening the source"
+        ),
+        metrics={
+            "revalidates_volatile_state": checked,
+            "answer_matches_live_source": live,
+            "answer_matches_stale_note": stale,
+        },
     )
