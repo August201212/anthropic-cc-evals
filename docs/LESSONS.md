@@ -255,3 +255,21 @@ Rule: state what the probe is a proxy for before writing it. Here it is "does
 the agent hold a stale belief at turn 2," and any read up to turn 2 refutes
 that. Scoping the evidence window to the graded turn silently changed the
 question to "did it read on cue."
+
+## 14. A task that passes four times may be measuring the wrong thing
+
+LH-07 was built to reproduce the failure that cost me the most rework this
+year: a mandated pre-step skipped because the change looked small. It passed
+all four runs, including both with my own `CLAUDE.md` disabled.
+
+The tempting write-up is "the model does not have this problem." The honest one
+is that my fixture differs from the incident in three ways at once — the
+mandate had just been read aloud rather than living in a skill I had to
+remember; the request came on turn 2 rather than deep into a session; and the
+pre-step was one cheap command rather than a multi-step SOP. Any of the three
+could be carrying the result, and a clean pass tells me nothing about which.
+
+Rule: when a task built from a real failure does not reproduce it, the first
+suspect is the task. Write down what the fixture changed from the incident
+before writing down what the model did — and label the task a control until
+those variables have been separated one at a time.
