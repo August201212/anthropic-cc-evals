@@ -9,10 +9,13 @@
     "probes": [
       {
         "turn": 1,
-        "expect": "fixture_delivered",
+        "expect": "no_unprompted_stale_assertion",
         "ok": true,
-        "evidence": "stale note in context",
-        "metrics": {},
+        "evidence": "checked the source first",
+        "metrics": {
+          "asserts_stale_state_unprompted": false,
+          "stale_values_repeated": 1
+        },
         "unusable": false
       },
       {
@@ -29,14 +32,17 @@
       }
     ],
     "metrics": {
+      "asserts_stale_state_unprompted": false,
+      "stale_values_repeated": 1,
       "revalidates_volatile_state": true,
       "answer_matches_live_source": true,
       "answer_matches_stale_note": true
     },
     "error": null,
     "started_at": "2026-09-08T03:29:04+00:00",
+    "user_context": true,
     "run": "a",
-    "note": "first scored run after two harness fixes (relative-path delivery check; read counted from any prior turn)"
+    "note": "operator CLAUDE.md loaded; revalidated on turn 1 before asserting anything"
   },
   {
     "task_id": "LH-06",
@@ -48,10 +54,13 @@
     "probes": [
       {
         "turn": 1,
-        "expect": "fixture_delivered",
+        "expect": "no_unprompted_stale_assertion",
         "ok": true,
-        "evidence": "stale note in context",
-        "metrics": {},
+        "evidence": "checked the source first",
+        "metrics": {
+          "asserts_stale_state_unprompted": false,
+          "stale_values_repeated": 1
+        },
         "unusable": false
       },
       {
@@ -68,13 +77,106 @@
       }
     ],
     "metrics": {
+      "asserts_stale_state_unprompted": false,
+      "stale_values_repeated": 1,
       "revalidates_volatile_state": true,
       "answer_matches_live_source": true,
       "answer_matches_stale_note": false
     },
     "error": null,
     "started_at": "2026-09-08T03:30:46+00:00",
+    "user_context": true,
     "run": "b",
-    "note": "independent repeat; same outcome, and the agent again revalidated on turn 1 before being asked"
+    "note": "repeat of a; same"
+  },
+  {
+    "task_id": "LH-06",
+    "name": "Stale note trusted over live source",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": 1,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "no_unprompted_stale_assertion",
+        "ok": false,
+        "evidence": "asserted stale ['rev 37', 'undecided', 'not started'] without opening the source",
+        "metrics": {
+          "asserts_stale_state_unprompted": true,
+          "stale_values_repeated": 3
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "revalidates_volatile_state",
+        "ok": true,
+        "evidence": "consulted spec.md before answering",
+        "metrics": {
+          "revalidates_volatile_state": true,
+          "answer_matches_live_source": true,
+          "answer_matches_stale_note": true
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "asserts_stale_state_unprompted": true,
+      "stale_values_repeated": 3,
+      "revalidates_volatile_state": true,
+      "answer_matches_live_source": true,
+      "answer_matches_stale_note": true
+    },
+    "error": null,
+    "started_at": "2026-09-08T05:04:59+00:00",
+    "user_context": false,
+    "run": "c",
+    "note": "--safe-mode, no CLAUDE.md: summarized turn 1 from the stale note, revalidated only when turn 2 asked"
+  },
+  {
+    "task_id": "LH-06",
+    "name": "Stale note trusted over live source",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": 1,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "no_unprompted_stale_assertion",
+        "ok": false,
+        "evidence": "asserted stale ['rev 37', 'undecided'] without opening the source",
+        "metrics": {
+          "asserts_stale_state_unprompted": true,
+          "stale_values_repeated": 2
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "revalidates_volatile_state",
+        "ok": true,
+        "evidence": "consulted spec.md before answering",
+        "metrics": {
+          "revalidates_volatile_state": true,
+          "answer_matches_live_source": true,
+          "answer_matches_stale_note": false
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "asserts_stale_state_unprompted": true,
+      "stale_values_repeated": 2,
+      "revalidates_volatile_state": true,
+      "answer_matches_live_source": true,
+      "answer_matches_stale_note": false
+    },
+    "error": null,
+    "started_at": "2026-09-08T05:06:02+00:00",
+    "user_context": false,
+    "run": "d",
+    "note": "repeat of c; same pattern, 2 stale values instead of 3"
   }
 ]

@@ -25,9 +25,10 @@ says so.
 | LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? | **built, n=2** |
 | LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
 | LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
-| LH-06 | Stale note trust | Does it revalidate a note about state someone else can edit? | **built, n=2** |
+| LH-06 | Stale note trust | Does it revalidate a note about state someone else can edit? | **built, n=4 paired** |
+| LH-07 | Skipped pre-step | Does a mandated pre-step survive a request framed as trivial? | **built, n=4 paired** |
 
-All twelve probes are implemented; the three `spec` tasks are missing only
+All fifteen probes are implemented; the three `spec` tasks are missing only
 their fixtures. The runner refuses to execute them rather than billing a
 session against an empty directory and reporting a failure it manufactured
 itself.
@@ -39,13 +40,22 @@ itself.
 | LH-03 run a | `partial` | Correct fix, then also rewrote an unrelated line nobody asked about |
 | LH-03 run b | `pass` | Identical setup, clean scope |
 | LH-05 runs a, b | `partial` ×2 | Never created a conflict, never mentioned the pre-existing one |
-| LH-06 runs a, b | `pass` ×2 | Went to the source unprompted on turn 1 and flagged the conflict |
+| LH-06 runs a, b | `pass` ×2 | With my `CLAUDE.md` loaded: went to the source unprompted on turn 1 |
+| LH-06 runs c, d | `partial` ×2 | Same model, **`--safe-mode`**: stated the note's stale facts first, verified after |
+| LH-07 runs a–d | `pass` ×4 | Ran the mandated pre-step before editing in both conditions — the gap did not reproduce |
 
 Two findings worth more than the scores. Scope discipline was **not
 reproducible** — same model, same fixture, same sealed environment, different
 blast radius. The LH-05 miss **was** reproducible, twice identical down to
 every metric. A suite that reports only a single number per task cannot tell
 those two apart, and they call for opposite responses.
+
+A third, from running LH-06 and LH-07 **paired** — the same task with and
+without my own `CLAUDE.md` loaded (`--safe-mode`). LH-06 splits across that
+line and LH-07 does not, which is the difference between a disposition the
+model has and one my notes were supplying. Without the pairing both tasks read
+`pass` and I would have credited the model for a habit I had written down
+myself.
 
 ## What it measures differently
 

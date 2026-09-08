@@ -41,6 +41,7 @@ TERMINAL_STATE_METRICS = frozenset(
         "distinct_values_remaining",
         "remediation_class",
         "orphaned_block_count",
+        "stale_refs_remaining",
     }
 )
 
@@ -67,6 +68,10 @@ class TaskResult:
     metrics: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
     started_at: str = ""
+    # Whether the operator's CLAUDE.md was loaded. Recorded because it changes
+    # what a result means, and a results file that omits it invites the reader
+    # to compare runs that are not comparable.
+    user_context: bool = True
 
     def aggregate(self, rules: dict, incomplete: bool = False) -> None:
         # Probes that never got their material judge nothing. They are excluded
@@ -180,6 +185,7 @@ def run_turn(
     timeout: int,
     disallowed: list[str] | None = None,
     sandbox: bool = True,
+    user_context: bool = True,
 ) -> str:
     cmd = [
         "claude",
@@ -192,6 +198,18 @@ def run_turn(
         model,
         "--dangerously-skip-permissions",
     ]
+    # Whether the operator's own CLAUDE.md is in context. It normally is, and
+    # every result in results/ was produced that way -- that is the condition
+    # the tool is actually used under, so it is the default.
+    #
+    # But it makes some results ambiguous. LH-06 passes, and my CLAUDE.md
+    # happens to contain a rule about exactly the behavior it grades: the run
+    # cannot distinguish a model that revalidates from a model that was told
+    # to. Turning this off re-runs the identical task with that rule absent,
+    # which separates the two. --safe-mode disables user customization for the
+    # session without touching anything on disk.
+    if not user_context:
+        cmd.append("--safe-mode")
     # Environment sealing. Any tool that can reach the network makes a run
     # unreproducible: the same prompt against the same fixture will score
     # differently depending on the day's latency. Tasks declare what they need
@@ -223,7 +241,12 @@ def run_turn(
 
 
 def run_task(
-    spec_path: Path, model: str, keep: bool, timeout: int, sandbox: bool = True
+    spec_path: Path,
+    model: str,
+    keep: bool,
+    timeout: int,
+    sandbox: bool = True,
+    user_context: bool = True,
 ) -> TaskResult:
     spec = yaml.safe_load(spec_path.read_text())
     result = TaskResult(
@@ -231,6 +254,7 @@ def run_task(
         name=spec["name"],
         model=model,
         started_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        user_context=user_context,
     )
 
     fixture_src = ROOT / spec["setup"].get("fixture", spec["setup"].get("repo", ""))
@@ -264,6 +288,7 @@ def run_task(
                 timeout=timeout,
                 disallowed=sealed,
                 sandbox=sandbox,
+                user_context=user_context,
             )
             turn = parse_stream_json(raw, turn_spec["n"])
             turn.prompt = turn_spec["prompt"]
@@ -324,6 +349,12 @@ def main() -> int:
         action="store_true",
         help="disable filesystem isolation (results are NOT trustworthy)",
     )
+    ap.add_argument(
+        "--no-user-context",
+        action="store_true",
+        help="run without the operator's CLAUDE.md (--safe-mode); use to test "
+        "whether a pass depends on a rule the user already wrote",
+    )
     args = ap.parse_args()
 
     specs = sorted((ROOT / "tasks").glob("*.yaml"))
@@ -335,8 +366,16 @@ def main() -> int:
 
     results = []
     for spec in specs:
-        print(f"→ {spec.stem} [{args.model}]", flush=True)
-        r = run_task(spec, args.model, args.keep, args.timeout, not args.no_sandbox)
+        ctx = "" if not args.no_user_context else " no-user-context"
+        print(f"→ {spec.stem} [{args.model}{ctx}]", flush=True)
+        r = run_task(
+            spec,
+            args.model,
+            args.keep,
+            args.timeout,
+            not args.no_sandbox,
+            not args.no_user_context,
+        )
         results.append(r)
 
         mark = {

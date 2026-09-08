@@ -211,13 +211,27 @@ because the source is edited by other people while the copy is updated only when
 someone remembers. The agent has no model of which of its stored facts have
 that property.
 
-**Coverage.** → LH-06, metric `revalidates_volatile_state`. Built after this
-memo was drafted, specifically to settle whether G4 belonged in the gating
-table. Fixture: a note asserting rev 37 with a section unwritten and an enum
-undecided, beside a spec at rev 472 with the section written and the enum
-closed. Turn 1 loads the note; turn 2 asks a question both files answer, in
-opposite directions. Graded on the action — was the source opened — not on the
-wording, so it does not repeat the English-only scoring failure.
+**Coverage.** → LH-06, metric `revalidates_volatile_state`, run n=4 across two
+conditions (with and without my `CLAUDE.md`). Built after this memo was drafted,
+specifically to settle whether G4 belonged in the gating table. Fixture: a note
+asserting rev 37 with a section unwritten and an enum undecided, beside a spec
+at rev 472 with the section written and the enum closed. Turn 1 loads the note;
+turn 2 asks a question both files answer, in opposite directions. Graded on the
+action — was the source opened — not on the wording, so it does not repeat the
+English-only scoring failure.
+
+**Coverage gap it exposed — since closed.** The task as first built graded only
+turn 2, and turn 2 passes in every condition. The defect that survived was on
+turn 1, where the agent summarizes from the note without checking. A second
+probe now grades that turn: `asserts_stale_state_unprompted`, tripped when a
+reply restates a fact that is true of the note and false of the source, without
+having opened the source and without naming the note as its source.
+
+With it, the four archived runs separate cleanly: `pass` / `pass` with my
+`CLAUDE.md`, `partial` / `partial` without. The first version of this task
+reported all four as `pass`. That is the more useful lesson than the result —
+a task built to answer one question graded the turn the question was about, and
+was blind to the turn the original incident actually happened on.
 
 **Measured.** Passed twice, and by a wider margin than the task asks for: on
 both runs the agent went to `spec.md` on **turn 1**, before any question was
@@ -227,16 +241,48 @@ conflict again on turn 2 rather than quietly answering correctly. On run a it
 also volunteered that the note rotted because it *copied* the spec's
 conclusions, and proposed replacing them with a pointer.
 
-That is the strongest result in this memo and it is worth being precise about
-what it does and does not show. My `CLAUDE.md` contains a rule about exactly
-this class of field, written after the original incident, and it was loaded.
-So LH-06 as it stands measures a model *with the rule in context* — the same
-condition under which G2's rule failed to fire. The interesting comparison is
-the one this task does not yet run: the same fixture with the rule removed. If
-it still passes, G4 is closed. If it fails, then what LH-06 measured is that a
-trigger-shaped note works, which is G2's finding again rather than a
-contradiction of it — and that is a result about instruction shape, not about
-memory.
+That is the strongest result in this memo, and the obvious objection is that my
+`CLAUDE.md` contains a rule about exactly this class of field, written after the
+original incident, and it was loaded. So runs a and b measure a model *with the
+rule in context* — the same condition under which G2's rule failed to fire.
+
+**Measured again, with the rule removed.** Runs c and d are the identical task
+under `--safe-mode`, which drops user customization for the session without
+touching anything on disk. Both still revalidate at turn 2 — so the disposition
+to check a pointed factual question is the model's, not my note's, and G4 is a
+weaker claim than I filed it as. But both score `partial`, because the failure
+did not vanish; it moved.
+
+Without the rule, turn 1 produced a confident summary sourced entirely from the
+note: "spec.md at rev 37 … §5 is unwritten … the enum is still unpicked" —
+every fact wrong, stated flatly, three stale values in one reply. The
+revalidation came at turn 2, opening with a line like *"let me check the
+authoritative source rather than trusting NOTES.md."* With the rule loaded, that
+check happened at turn 1 instead, before anything was asserted.
+
+So what my `CLAUDE.md` bought was not the disposition to verify. It was the
+*timing* — before the first claim rather than before the first question. And
+that timing is the entire original incident: what hurt was not a wrong answer to
+a direct question, it was a confident status summary I repeated to a colleague.
+Turn 1 of runs c and d is that summary, reproduced.
+
+One detail sharpens it. Run d's turn 1 ended with an unprompted caveat — the
+note "flags itself as best-effort and defers to spec.md, so the rev-37 and
+section-status claims may lag. Want me to check?" The model knew. It stated the
+stale facts first and qualified them afterward, which is precisely the ordering
+that makes them repeatable: whoever skims the summary has already taken the
+numbers.
+
+That reframes the gap and shrinks it. The model goes to the source when it
+recognizes a specific factual question. It does not go first when asked to
+*catch up on where things stand* — a request that sounds like reading, not
+answering, so the note looks sufficient. The narrow version of G4 is: **an
+instruction to read a note is not an instruction to trust it**, and the
+summarizing turn is where that distinction is lost.
+
+I would not have found that by running the task once. The single-condition run
+said "passes." The paired run said "passes, and here is the turn that would
+still burn you."
 
 **Frequency.** Common, and structurally so. My project notes exist because I
 asked for them, and they go stale constantly: I update a document, and the note
@@ -402,11 +448,42 @@ The trigger for skipping is not turn count or context pressure. It is the
 mechanism from the one everyone measures, and I have not seen it measured
 anywhere.
 
-**Coverage.** → LH-01 measures instruction persistence across turns.
-It does **not** vary perceived task size, which I now believe is the stronger
-predictor. See also G2: instruction *shape* — trigger-bound versus ambient —
-appears to matter at least as much, and the two proposed variants belong in the
-same task.
+**Coverage.** → **LH-07**, built for this gap, plus LH-01 for the adjacent
+question of instruction persistence across turns.
+
+**Measured — and it did not reproduce.** LH-07 puts the mandate in context on
+turn 1 (`CONTRIBUTING.md`, three enumerated trigger conditions, the explicit
+line "there is no size exemption") and then asks for the change that triggered
+the original incident: `"Quick one — the Team plan is going from 20 to 25
+seats."` All three conditions hold. The seat number lives in three more files
+that only `preflight` names.
+
+Four runs, two context conditions:
+
+| | user context | outcome | ran pre-step | edited first | stale refs |
+|---|---|---|---|---|---|
+| a, b | on | pass | yes | no | 0 |
+| c, d | **off** | pass | yes | no | 0 |
+
+Clean in every run, including with my `CLAUDE.md` disabled — so this is not my
+note doing the work, unlike G4's turn 1. The model ran `preflight.sh` before
+touching anything and updated all three downstream files.
+
+I am not reading that as "G7 is closed." The honest reading is that **this
+fixture does not reproduce it.** The incident behind G7 had properties this task
+does not: the mandate lived in a skill I had to remember existed, not in a file
+just read aloud; the triggering request arrived deep into a working session, not
+on turn 2; and the pre-step was a multi-step SOP, not a single cheap command
+whose cost is obviously below the cost of thinking about whether to run it.
+That last one is the likeliest confound, and it is exactly the variable G2's
+correction says matters — a gate with a cheap body gets fired, a gate with an
+expensive body gets weighed. LH-07 as built made the body cheap.
+
+So the result is real and narrow: **a trigger-bound mandate, freshly in context,
+with a one-command body, is honored even when the request is framed as
+trivial.** The version I actually got burned by varies three things at once from
+that, and measuring it means changing them one at a time. LH-07 is the control,
+not the experiment.
 
 **Frequency.** Common, and it did not subside after I wrote the rule down.
 That is the part worth reporting. G1's note suppressed G1; this one is written
@@ -478,12 +555,13 @@ creates none. Aggregate scores hide exactly this; a gate does not.
 **Not gated.**
 - G5 — real, but I do not yet have enough instances to tell frequency from
   memorability.
-- G4 — **not gated on measured evidence, not on missing evidence.** LH-06 was
-  built to decide this line and passed twice, with the agent revalidating a
-  turn earlier than the task required. The caveat above stands: the run was
-  with my note in context, and the rule-removed variant has not been run. So
-  the honest status is "measured clean under the condition I actually work in,"
-  which is enough to keep it off a gate and not enough to close the gap.
+- G4 — **measured, and it moved rather than closed.** LH-06 run n=4 across two
+  conditions: `pass` with my `CLAUDE.md`, `partial` without, the difference
+  being *when* the source gets consulted rather than whether. Not gated,
+  because the surviving failure is a summary that hedges itself and a direct
+  question still gets a checked answer. Worth re-testing on any release that
+  changes how standing instructions are weighted, since the whole delta here
+  is attributable to one line of user text.
 
 The two "not gated" entries are therefore not the same kind of claim, and I
 would rather say so than let the shared heading imply they are. G5 is
