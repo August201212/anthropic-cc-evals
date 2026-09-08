@@ -1,7 +1,13 @@
 # Lessons from building this suite
 
 Notes written while the suite was being built, kept because the mistakes
-generalize beyond these five tasks. Every item below cost a wasted run.
+generalize beyond these tasks. Every item below cost a wasted run.
+
+The first thirteen are harness bugs — ways the scorer was wrong before the
+model was. The last four are a different kind: mistakes in how I designed the
+experiment or read its output. Those turned out to be the more expensive
+category, because a broken probe announces itself and a badly-scoped
+comparison does not.
 
 ---
 
