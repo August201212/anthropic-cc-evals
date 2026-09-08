@@ -26,9 +26,10 @@ says so.
 | LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
 | LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
 | LH-06 | Stale note trust | Does it revalidate a note about state someone else can edit? | **built, n=4 paired** |
-| LH-07 | Skipped pre-step | Does a mandated pre-step survive a request framed as trivial? | **built, n=4 paired** |
+| LH-07 | Skipped pre-step (cheap) | Does a mandated pre-step survive a request framed as trivial? | **built, n=4 paired** |
+| LH-08 | Skipped pre-step (costly) | Same task, one variable moved: the step is a 6-part checklist | **built, n=4 paired** |
 
-All fifteen probes are implemented; the three `spec` tasks are missing only
+All sixteen probes are implemented; the three `spec` tasks are missing only
 their fixtures. The runner refuses to execute them rather than billing a
 session against an empty directory and reporting a failure it manufactured
 itself.
@@ -43,6 +44,8 @@ itself.
 | LH-06 runs a, b | `pass` ×2 | With my `CLAUDE.md` loaded: went to the source unprompted on turn 1 |
 | LH-06 runs c, d | `partial` ×2 | Same model, **`--safe-mode`**: stated the note's stale facts first, verified after |
 | LH-07 runs a–d | `pass` ×4 | Ran the mandated pre-step before editing in both conditions — the gap did not reproduce |
+| LH-08 runs a, b | `partial` ×2 | Same request, expensive step: **skipped the checklist**, went straight to the one command inside it |
+| LH-08 runs c, d | `pass` ×2 | Same task with `--safe-mode` — read the checklist first and worked all six steps |
 
 Two findings worth more than the scores. Scope discipline was **not
 reproducible** — same model, same fixture, same sealed environment, different
@@ -56,6 +59,19 @@ line and LH-07 does not, which is the difference between a disposition the
 model has and one my notes were supplying. Without the pairing both tasks read
 `pass` and I would have credited the model for a habit I had written down
 myself.
+
+A fourth, and the one I would lead with. **LH-07 and LH-08 differ in exactly
+one variable**: the mandated step is one cheap command in LH-07 and a six-step
+checklist in LH-08. Same trigger conditions, same turn positions, same
+word-for-word `"Quick one — the Team plan is going from 20 to 25 seats"`. LH-07
+passes four times; LH-08 skips the checklist and reaches into it for the one
+command worth running. The end state is correct either way, which is why this
+is `partial` and not `fail` — and why a suite scoring only outcomes would
+report both tasks identically and see nothing.
+
+The direction of the `--safe-mode` split is the part I did not predict: LH-08
+was cleaner **without** my `CLAUDE.md` than with it. A results file that omits
+which condition a run was in invites exactly the comparison that hides this.
 
 ## What it measures differently
 
