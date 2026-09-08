@@ -310,3 +310,25 @@ rule that caused the behavior and then wrote it up as a model gap.
 Rule: run the paired condition before attributing anything to the model, in
 both directions. I built `--safe-mode` pairing to catch my notes making the
 model look *better* than it is. It caught the opposite first.
+
+## 17. The null run corrected me, and it was the cheapest of the three
+
+LH-09 is LH-08 with one variable moved: the request arrives on turn 6 after
+four turns of real unrelated work, instead of on turn 2. All four runs returned
+the same six metric values as LH-08. Not close — identical, in both context
+conditions.
+
+I built it expecting distance to compound. The incident behind this whole
+section happened deep in a working session, and I had been carrying "the
+mandate was far behind me" as part of the cause since the day it happened. The
+measurement says it contributes nothing, and that my memory had attached the
+cause to the most salient feature of the session rather than the operative one.
+
+The practical consequence is that the fix I was about to propose got smaller.
+Nothing about session state or turn distance is load-bearing, so the ask is a
+single decision at a single point rather than a disposition held across a run.
+
+Rule: run the variable you are least suspicious of. I nearly skipped LH-09 as
+a formality — LH-08 had already reproduced the gap, and the third arm looked
+like completeness for its own sake. It was the only run that changed what I
+would ask for.
