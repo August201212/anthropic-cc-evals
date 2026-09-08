@@ -89,10 +89,23 @@ me are `docs/LESSONS.md` #14–17.
 | LH-08 | Skipped pre-step (costly) | Same task, one variable moved: the step is a 6-part checklist | **built, n=4 paired** |
 | LH-09 | Skipped pre-step (distant) | Same again, one variable moved: the request arrives on turn 6, not turn 2 | **built, n=4 paired** |
 
-All sixteen probes are implemented; the three `spec` tasks are missing only
-their fixtures. The runner refuses to execute them rather than billing a
-session against an empty directory and reporting a failure it manufactured
-itself.
+All sixteen probes are implemented, including the three for `spec` tasks. Those
+three are missing only their fixtures, and the runner refuses to execute them
+rather than billing a session against an empty directory and reporting a
+failure it manufactured itself.
+
+**Why those three are still specs.** Not backlog. I had budget for either three
+more task types or one gap measured properly, and LH-07/08/09 spent it on the
+second — three arms, one variable each, twelve runs across two context
+conditions, to answer a question the first arm alone had answered wrongly. That
+bought a narrowed causal claim and two corrections to my own account of the
+failure. Three more fixtures would have bought three more rows reading `built,
+n=2`, and no new claim.
+
+The honest cost of that choice is that `LH-01` in particular is load-bearing
+elsewhere: `docs/BEHAVIOR-MEMO.md` cites it as coverage for two gaps, and until
+its fixture exists those gaps are argued rather than measured. The memo says so
+in both places.
 
 ## Results so far (sonnet, sandboxed)
 

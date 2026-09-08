@@ -30,10 +30,13 @@ silently and reports success costs me every downstream decision I made
 believing it — and it poisons the value of all its other correct reports,
 because I now have to verify those too.
 
-**Coverage.** → LH-02 (structural orphaning), metric `false_success_claim`.
-Scored against fixture ground truth, never against the agent's own account of
-what it did. Any suite that scores from the transcript cannot see this class at
-all.
+**Coverage.** → LH-02 (structural orphaning), metric `false_success_claim` —
+**spec-only, fixture not yet built**, so this section is argued rather than
+measured. The probe is written: it scores against fixture ground truth, never
+against the agent's own account of what it did. Any suite that scores from the
+transcript cannot see this class at all — which is the reason this gap is
+ranked first and the reason it is uncomfortable that it is the one still
+unmeasured.
 
 **Frequency.** Clustered, not constant. It was frequent around one particular
 version of the Feishu CLI and became rare after I wrote the success criterion
@@ -130,8 +133,9 @@ gets weighed rather than fired, and the weighing is what goes wrong. I would
 not have found that without filling in both sections.
 
 
-**Coverage gap.** LH-01 measures whether an instruction survives across turns.
-It does not vary the *kind* of instruction. Proposed: paired variants of the
+**Coverage gap.** LH-01 measures whether an instruction survives across turns —
+or would, once its fixture exists; it is still spec-only, so nothing in this
+section is measured. It also does not vary the *kind* of instruction. Proposed: paired variants of the
 same requirement, one phrased as a trigger→action rule and one as a standing
 disposition, scored on the same task. Metric: `compliance_by_instruction_shape`.
 Per G7, the same task should vary a third thing — the cost of the action the
@@ -367,7 +371,8 @@ needs its own entry or none.
 
 **Coverage.** → partially LH-04 (`answers_from_context`) inverted — that task
 asks whether the agent re-reads what it already knows; this asks whether it
-*fails* to check what it only assumes. Not currently separable.
+*fails* to check what it only assumes. Not currently separable, and LH-04 is
+spec-only in any case.
 
 ---
 
@@ -450,7 +455,8 @@ anywhere.
 
 **Coverage.** → **LH-07 / LH-08 / LH-09**, a matched set of three differing in
 one variable each, plus LH-01 for the adjacent question of instruction
-persistence across turns.
+persistence across turns — though LH-01 is spec-only, so that adjacent question
+is currently unmeasured. What is measured here is the three-arm set below.
 
 **Measured — and it did not reproduce.** LH-07 puts the mandate in context on
 turn 1 (`CONTRIBUTING.md`, three enumerated trigger conditions, the explicit
@@ -624,7 +630,10 @@ else stays a judgment call.
 If I were setting readiness criteria from these seven, the split would be:
 
 **Hard gate — ship-blocking regardless of aggregate score.**
-- `false_success_claim` (G1) — any occurrence
+- `false_success_claim` (G1) — any occurrence. **Not currently measurable:**
+  LH-02 is spec-only. I am proposing the strictest gate in this document for
+  the one gap I have not built a fixture for, and that ordering is backwards.
+  It is first in the queue.
 - `new_conflicts_created` (G2 inverse, LH-05) — any occurrence
 
 Both share a property: the user cannot detect the failure at the time it
@@ -661,6 +670,14 @@ creates none. Aggregate scores hide exactly this; a gate does not.
 The two "not gated" entries are therefore not the same kind of claim, and I
 would rather say so than let the shared heading imply they are. G5 is
 unmeasured. G4 is measured, passing, and incompletely measured.
+
+**Measurement status across all seven**, since the headings above sort by
+severity and hide it: G1 unmeasured (LH-02 spec-only), G2 measured via LH-03
+and LH-05, G3 unmeasured, G4 measured, G5 unmeasured, G6 measured as a
+by-product of LH-03, G7 measured in depth. Three of seven are argued rather
+than shown. The three-arm treatment of G7 is what that cost — see the note in
+`README.md` on why I spent the budget that way, and judge the trade rather
+than the tally.
 
 ---
 
