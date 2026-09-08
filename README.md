@@ -176,6 +176,8 @@ time the model's actual behavior had been correct.
 ## Reading order
 
 - `docs/DESIGN.md` — why this suite exists
+- `docs/METHOD.md` — how it tries to earn its results: paired conditions,
+  matched sets, and where ground truth comes from
 - `docs/BEHAVIOR-MEMO.md` — seven behavior gaps from five months of daily use,
   each with what I would propose and what it would cost to over-correct
 - `docs/LESSONS.md` — seventeen ways the harness, or its author, was wrong

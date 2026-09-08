@@ -9,6 +9,9 @@ experiment or read its output. Those turned out to be the more expensive
 category, because a broken probe announces itself and a badly-scoped
 comparison does not.
 
+This file is chronological and keeps the wrong turns in. `docs/METHOD.md` is
+the distilled version — the rules these mistakes produced, stated once.
+
 ---
 
 ## 1. A planted defect must causally explain the prompt's symptom

@@ -49,4 +49,6 @@ needs to see between two release candidates.
 
 ## Status
 
-Task specs drafted. Harness implementation in progress.
+Harness implemented; six tasks built and run, three still spec-only pending
+fixtures. Current task list and results are in `README.md` — kept there rather
+than duplicated here. Methodology in `docs/METHOD.md`.
