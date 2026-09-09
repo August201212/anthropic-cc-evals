@@ -456,3 +456,37 @@ value, not in a commit message.
 
 Rule: an expectation may only be edited with a written argument for why the old
 one was wrong, stored where the next reader will trip over it.
+
+## 24. A task can declare the thing it is testing and never deliver it
+
+LH-01 measures whether a stated convention decays as context grows. Its spec
+carried `rules_file: CLAUDE.md` and a `rules_content` block holding the exact
+retrieval discipline under test. A grep for those keys across the harness
+returned nothing: only `indexed_files` was ever read. The runner copied the
+fixture and sent the prompts, and the rule the whole task is about was never
+written into the workdir, so the model never saw it.
+
+Had the fixture been built and run as-is, every result would have been the
+decay of a convention that was never stated. The probes would have reported
+cleanly. The number would have been meaningless in a way nothing downstream
+could detect.
+
+This is LESSONS #19's species — a probe grading a signal that does not exist —
+but one level earlier, in delivery rather than scoring. The generalization:
+every key a spec declares is a promise that something consumes it. Before
+trusting a task, grep its own vocabulary against the harness and confirm each
+term is read somewhere.
+
+## 25. Bypasses are judged by what reaches context, not by which tool was used
+
+`reads_range_only` inspected `Read` calls. `cat src/pipeline.py` in Bash puts
+the same 2,270 lines into context, evades the index identically, and scored
+clean. The fix also had to be attacked: `sed -n '341,400p'` names the file in
+Bash too, and is the discipline working. A first cut flagged offenders only,
+which left compliant `sed` registering as no read at all — so a correct run
+fell into the "never delivered" branch and was discarded as unusable. The
+probe had to record delivery and violation as two separate facts.
+
+Same rule as LH-02's pathless Grep: delivery is delivery whatever the route.
+Every probe that keys on a tool name has this hole until someone tries the
+cheapest way around it.

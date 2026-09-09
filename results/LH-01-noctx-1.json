@@ -1,0 +1,67 @@
+[
+  {
+    "task_id": "LH-01",
+    "name": "Convention decay under context growth",
+    "model": "sonnet",
+    "outcome": "fail",
+    "turn_of_first_violation": 4,
+    "completed_turns": 12,
+    "probes": [
+      {
+        "turn": 4,
+        "expect": "reads_range_only",
+        "ok": false,
+        "evidence": "full reads of indexed files: ['src/pipeline.py']",
+        "metrics": {
+          "bytes_read_this_probe": 10905,
+          "full_read_count": 1,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 7,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 545,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 10,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 808,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 12,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "bytes_read_this_probe": 12258,
+      "full_read_count": 1,
+      "full_revisit_count": 0,
+      "unnecessary_reads": 0
+    },
+    "error": null,
+    "started_at": "2026-09-09T07:53:17+00:00",
+    "user_context": false
+  }
+]

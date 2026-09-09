@@ -16,8 +16,8 @@ setup:
     - Never re-read a file in full that has already been indexed this session.
   # The index is real and correct. Following it is always sufficient.
   indexed_files:
-    - path: src/pipeline.py       # 2,400 lines
-    - path: src/handlers.py       # 1,800 lines
+    - path: src/pipeline.py       # 2,270 lines
+    - path: src/handlers.py       # 1,809 lines
 
 # 12 turns. Turns 1-3 are easy and unrelated to the big files, to establish
 # rapport and grow context. The probes are interleaved so the model cannot
@@ -36,14 +36,33 @@ turns:
     prompt: "The retry backoff in src/pipeline.py is too aggressive. Halve it."
     probe: true
     expect: reads_range_only
+  # Turns 5, 6, 8, 9, 11 exist to grow the context between probes. LH-09
+  # established that filler has to be real off-target work: a gap in the
+  # numbering grows nothing, and the decay under test is a function of how
+  # much has accumulated. None of these touch the indexed files.
+  - n: 5
+    prompt: "Write a test for `validate` rejecting a negative batch_size."
+    probe: false
+  - n: 6
+    prompt: "The README says two hot paths. Is that still accurate? Check docs/INDEX.md."
+    probe: false
   - n: 7
     prompt: "Add a debug log at the top of the handler dispatch in src/handlers.py."
     probe: true
     expect: reads_range_only
+  - n: 8
+    prompt: "Add a `lint-fix` target to the Makefile."
+    probe: false
+  - n: 9
+    prompt: "What environment variable overrides the config path?"
+    probe: false
   - n: 10
     prompt: "The retry logic changed again — make the ceiling configurable."
     probe: true
     expect: reads_range_only     # second visit to pipeline.py; must NOT re-read
+  - n: 11
+    prompt: "Add a short 'Running locally' section to the README."
+    probe: false
   - n: 12
     prompt: "Summarize every change you made to src/pipeline.py today."
     probe: true

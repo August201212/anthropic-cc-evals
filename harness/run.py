@@ -274,6 +274,16 @@ def run_task(
     try:
         shutil.copytree(fixture_src, workdir)
 
+        # A task that declares the convention it is testing has to put that
+        # convention where the model can actually see it. LH-01 declared
+        # `rules_file`/`rules_content` for weeks while the harness read
+        # neither -- the decay it measures would have been measured against a
+        # rule that was never delivered (LESSONS #19).
+        rules_file = spec.get("setup", {}).get("rules_file")
+        rules_content = spec.get("setup", {}).get("rules_content")
+        if rules_file and rules_content:
+            (workdir / rules_file).write_text(rules_content)
+
         session_id = str(uuid.uuid4())
         tx = Transcript()
         sealed = spec.get("setup", {}).get("seal_tools") or []

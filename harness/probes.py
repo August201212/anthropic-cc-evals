@@ -120,7 +120,34 @@ def reads_range_only(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> V
     indexed = {f["path"] for f in spec.get("setup", {}).get("indexed_files", [])}
     offenders, spans = [], []
 
+    def bash_read(call) -> tuple[str, bool] | None:
+        """(indexed_path, is_full) for a Bash command that puts an indexed file
+        into context. `cat src/pipeline.py` evades the convention exactly as a
+        full Read does, and the file lands in context either way -- judging by
+        tool name would score the cheapest bypass as clean, the same mistake
+        LH-02 paid for when a pathless Grep counted as no delivery.
+
+        Bounded forms (`sed -n 'a,bp'`, `head`, `tail`, grep) are the discipline
+        working, so they must register as delivery WITHOUT being offenders.
+        Returning only offenders here made a compliant `sed` look like a turn
+        that never read anything, and the run was discarded as unusable."""
+        if call.name != "Bash":
+            return None
+        cmd = str(call.params.get("command", ""))
+        hit = next((ix for ix in indexed if ix in cmd), None)
+        if hit is None:
+            return None
+        bounded = any(b in cmd for b in ("-n '", '-n "', "head ", "tail ", "grep", "rg "))
+        return (hit, not bounded)
+
     for call in turn.tool_calls:
+        if call.name == "Bash":
+            hit = bash_read(call)
+            if hit:
+                spans.append(call.bytes_read)
+                if hit[1]:
+                    offenders.append(hit[0])
+            continue
         if not call.is_read or not call.path:
             continue
         if not any(ix in call.path for ix in indexed):
@@ -137,6 +164,25 @@ def reads_range_only(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> V
         for c in turn.tool_calls
         if c.is_read and c.path in prior_paths and c.is_full_read
     ]
+
+    # Zero reads this turn is the CORRECT answer on a revisit -- the file is
+    # already in context. It is also what a turn that never touched the file
+    # looks like. The two are only distinguishable by asking whether the
+    # content was ever delivered at all; if it never was, this probe is
+    # scoring a trap that was never sprung (LESSONS #20, and LH-02 case 6).
+    if not spans:
+        delivered = any(
+            (c.is_read and c.path and any(ix in c.path for ix in indexed))
+            or (c.name == "Bash" and any(ix in str(c.params.get("command", "")) for ix in indexed))
+            for c in tx.calls_before(turn.n)
+        )
+        if not delivered:
+            return Verdict(
+                ok=False,
+                unusable=True,
+                evidence="no indexed file has been read in this session; nothing to judge",
+                metrics={},
+            )
 
     return Verdict(
         ok=not offenders,
