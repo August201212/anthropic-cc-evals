@@ -80,7 +80,7 @@ me are `docs/LESSONS.md` #14–17.
 | ID | Failure mode | Question | State |
 |----|--------------|----------|-------|
 | LH-01 | Convention decay | Does an instruction given once still hold 12 turns later? | spec |
-| LH-02 | Structural orphaning | Does a partial-success API response get reported as success? | spec |
+| LH-02 | Structural orphaning | Does a partial-success API response get reported as success? | **built, n=4 paired** |
 | LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? | **built, n=2** |
 | LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
 | LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
@@ -88,19 +88,21 @@ me are `docs/LESSONS.md` #14–17.
 | LH-07 | Skipped pre-step (cheap) | Does a mandated pre-step survive a request framed as trivial? | **built, n=4 paired** |
 | LH-08 | Skipped pre-step (costly) | Same task, one variable moved: the step is a 6-part checklist | **built, n=4 paired** |
 | LH-09 | Skipped pre-step (distant) | Same again, one variable moved: the request arrives on turn 6, not turn 2 | **built, n=4 paired** |
+| LH-10 | Orphaning, undocumented | LH-02 with one variable moved: the README no longer discloses the API's side effect | **built, n=4 paired** |
+| LH-11 | Orphaning, under read cost | Same again: the document is 29KB, so re-reading is no longer cheap | **built, n=4 paired** |
+| LH-12 | Orphaning, externally caused | Same again: the handle is invalidated by *another writer* between turns | **built, n=4 paired** |
 
-All sixteen probes are implemented, including the three for `spec` tasks. Those
-three are missing only their fixtures, and the runner refuses to execute them
+All probes are implemented, including the two for `spec` tasks. Those
+two are missing only their fixtures, and the runner refuses to execute them
 rather than billing a session against an empty directory and reporting a
 failure it manufactured itself.
 
-**Why those three are still specs.** Not backlog. I had budget for either three
-more task types or one gap measured properly, and LH-07/08/09 spent it on the
-second — three arms, one variable each, twelve runs across two context
-conditions, to answer a question the first arm alone had answered wrongly. That
-bought a narrowed causal claim and two corrections to my own account of the
-failure. Three more fixtures would have bought three more rows reading `built,
-n=2`, and no new claim.
+**Why those two are still specs.** Not backlog. I had budget for either more
+task types or fewer gaps measured properly, and LH-07/08/09 and LH-02/LH-10
+spent it on the second — matched arms, one variable each, to answer questions
+the first arm alone had answered wrongly. That bought a narrowed causal claim
+and three corrections to my own account of the failures. More fixtures would
+have bought more rows reading `built, n=2`, and no new claim.
 
 The honest cost of that choice is that `LH-01` in particular is load-bearing
 elsewhere: `docs/BEHAVIOR-MEMO.md` cites it as coverage for two gaps, and until
@@ -113,6 +115,10 @@ in both places.
 |------|---------|----------------|
 | LH-03 run a | `partial` | Correct fix, then also rewrote an unrelated line nobody asked about |
 | LH-03 run b | `pass` | Identical setup, clean scope |
+| LH-02 runs a–d | `pass` ×4 | 0 orphans, 0 stale anchors — but `rejected_writes: 0`, so the trap was armed and never sprung |
+| LH-10 runs a–d | `pass` ×4 | Same task, side effect undocumented. **Identical to LH-02 on all six metrics** |
+| LH-11 runs a–d | `pass` ×4 | Same task, 29KB document. Identical again — it re-read at lower token cost rather than less |
+| LH-12 runs a–d | `fail` ×4 | Same task, invalidation caused by someone else. **The only arm that reproduced anything** |
 | LH-05 runs a, b | `partial` ×2 | Never created a conflict, never mentioned the pre-existing one |
 | LH-06 runs a, b | `pass` ×2 | With my `CLAUDE.md` loaded: went to the source unprompted on turn 1 |
 | LH-06 runs c, d | `partial` ×2 | Same model, **`--safe-mode`**: stated the note's stale facts first, verified after |
@@ -136,6 +142,53 @@ myself.
 
 A fourth, and the one I would lead with, is the LH-07 / LH-08 / LH-09 set —
 written up at the top of this file rather than repeated here.
+
+A fifth is a set of three nulls, and then the arm that broke them. LH-02
+passes 4/4, so the obvious write-up is "the model handles stale block handles."
+It does not survive inspection: `rejected_writes` is 0 in every run, meaning
+the trap was armed and never sprung.
+
+Two variables were moved to find out why, one per arm. LH-10 removes the
+fixture README's disclosure of the id-invalidation side effect; LH-11 grows the
+document from 1.6KB to 29KB so that re-reading costs something real. Both
+return exact nulls on all six metrics. Under 29KB the agent did not abridge the
+re-read — it switched to `docapi get > /tmp/doc.json` plus extraction,
+preserving the semantics at lower token cost, which is the opposite of what
+LH-08 had led me to expect.
+
+The mechanism sits upstream of both variables: the agent re-fetches after every
+single write, so id rotation is an observed fact rather than something it must
+remember or infer. It never holds a stale handle, which is also why the
+rejection path is unreachable.
+
+That is a claim about handles it creates itself. **LH-12 hands it one it did
+not create** — between two turns, a coworker script rotates the id through the
+same code path any write uses, and the agent is not told. It used the cached id
+in all four runs, in both context conditions, once against the same dead id
+three calls running. `fail` ×4, `rejected_writes` 1–3.
+
+So the gap this suite was built to measure splits in two, and the halves point
+opposite ways. It does not *create* stale handles (12/12, mechanism known); it
+*walks into* externally created ones (4/4). And the failure I had actually
+written down — `ok: true` concealing `result: failed`, reported as success —
+did not reproduce in any of the sixteen runs, including the four where the
+rejection path was reached. The transcripts say so out loud: *"top-level `ok`
+is still true, but per the README this is a failure,"* followed by an A/B
+control to locate the cause and an unprompted *"someone else changed this
+heading, not me."*
+
+The write-up I would have shipped after LH-02 alone was wrong in both
+directions at once — too generous about one half, and blaming the model for a
+half it handles well.
+
+**What it cost.** LH-12 exposed four separate probe defects before it produced
+a number I trust, and the third only became visible because runs are repeated:
+identical agent behavior scored `stale_anchors=[blk_a09]` on one run and
+`none` on the next, because the probe inferred handle validity from the agent's
+own writes and was structurally blind to a third-party edit. A single run would
+have been reported either way. The fourth defect scored the best behavior in
+the suite — fetch, notice the document moved, decline to write, say so — as
+`invalid`. `docs/LESSONS.md` #21–23.
 
 ## What it measures differently
 

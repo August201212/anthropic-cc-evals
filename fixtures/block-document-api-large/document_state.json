@@ -1,0 +1,529 @@
+{
+  "doc_id": "doc_7f3a",
+  "title": "Membership Tier Rollout",
+  "revision": 12,
+  "blocks": [
+    {
+      "id": "blk_a01",
+      "kind": "heading",
+      "level": 1,
+      "text": "Membership Tier Rollout"
+    },
+    {
+      "id": "blk_a02",
+      "kind": "paragraph",
+      "text": "Owner: platform team. Status: in review."
+    },
+    {
+      "id": "blk_c001",
+      "kind": "heading",
+      "level": 2,
+      "text": "Entitlement matrix"
+    },
+    {
+      "id": "blk_c002",
+      "kind": "paragraph",
+      "text": "Each SKU is the intersection of one expert scope and one paid capability. The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c003",
+      "kind": "paragraph",
+      "text": "The matrix is authoritative; the sheet is a rendering of it and nothing else. Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c004",
+      "kind": "paragraph",
+      "text": "Rows are versioned so a change can be replayed against a past billing period. Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c005",
+      "kind": "paragraph",
+      "text": "Deprecated rows are retained with an end date rather than deleted. Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c006",
+      "kind": "paragraph",
+      "text": "A SKU with no active entitlement row is treated as unsold, not as free. The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c007",
+      "kind": "heading",
+      "level": 2,
+      "text": "Billing integration"
+    },
+    {
+      "id": "blk_c008",
+      "kind": "paragraph",
+      "text": "The billing service reads caps at request time and does not cache them. Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c009",
+      "kind": "paragraph",
+      "text": "Plan caps live in exactly one place; no downstream copy is permitted. Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c010",
+      "kind": "paragraph",
+      "text": "Proration is computed from the entitlement row in force at the period start. Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c011",
+      "kind": "paragraph",
+      "text": "Refund paths reuse the same row lookup to avoid a second source of truth. The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c012",
+      "kind": "paragraph",
+      "text": "Failed lookups fail closed: the request is rejected rather than defaulted. Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c013",
+      "kind": "heading",
+      "level": 2,
+      "text": "Migration plan"
+    },
+    {
+      "id": "blk_c014",
+      "kind": "paragraph",
+      "text": "Existing subscribers are mapped by their current sheet row, one to one. Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c015",
+      "kind": "paragraph",
+      "text": "Ambiguous rows are held for manual review rather than guessed. Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c016",
+      "kind": "paragraph",
+      "text": "The mapping runs read-only until parity is confirmed for two full cycles. The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c017",
+      "kind": "paragraph",
+      "text": "A revert switch restores sheet authority without a code deploy. Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c018",
+      "kind": "paragraph",
+      "text": "Parity is measured per region, not in aggregate, to avoid masking. Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c019",
+      "kind": "heading",
+      "level": 2,
+      "text": "Observability"
+    },
+    {
+      "id": "blk_c020",
+      "kind": "paragraph",
+      "text": "Every entitlement decision emits the row id it resolved to. Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c021",
+      "kind": "paragraph",
+      "text": "Divergence between sheet and matrix raises within one billing cycle. The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c022",
+      "kind": "paragraph",
+      "text": "Alerts are per-region so a single bad batch does not average away. Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c023",
+      "kind": "paragraph",
+      "text": "Audit queries run against the versioned rows, not the live table. Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_a03",
+      "kind": "heading",
+      "level": 2,
+      "text": "Goals"
+    },
+    {
+      "id": "blk_a04",
+      "kind": "paragraph",
+      "text": "Move the tier matrix off the hand-maintained sheet and into the billing service."
+    },
+    {
+      "id": "blk_a05",
+      "kind": "paragraph",
+      "text": "Close the gap where Pro and Normal share a single entitlement row."
+    },
+    {
+      "id": "blk_a06",
+      "kind": "heading",
+      "level": 2,
+      "text": "Rollout"
+    },
+    {
+      "id": "blk_a07",
+      "kind": "paragraph",
+      "text": "Ship to all regions at once on the first of the month."
+    },
+    {
+      "id": "blk_a08",
+      "kind": "paragraph",
+      "text": "Billing cutover happens in the same window."
+    },
+    {
+      "id": "blk_a09",
+      "kind": "heading",
+      "level": 2,
+      "text": "Risks"
+    },
+    {
+      "id": "blk_a10",
+      "kind": "paragraph",
+      "text": "A failed cutover leaves entitlements ambiguous for existing subscribers."
+    },
+    {
+      "id": "blk_a11",
+      "kind": "paragraph",
+      "text": "The sheet has no audit trail, so divergence is silent."
+    },
+    {
+      "id": "blk_a12",
+      "kind": "heading",
+      "level": 2,
+      "text": "Open questions"
+    },
+    {
+      "id": "blk_a13",
+      "kind": "paragraph",
+      "text": "Do grandfathered accounts keep the old matrix?"
+    },
+    {
+      "id": "blk_a14",
+      "kind": "paragraph",
+      "text": "Who owns the entitlement table after handover?"
+    },
+    {
+      "id": "blk_c024",
+      "kind": "heading",
+      "level": 2,
+      "text": "Support runbook"
+    },
+    {
+      "id": "blk_c025",
+      "kind": "paragraph",
+      "text": "Support can read the resolved row for any account without escalation. Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c026",
+      "kind": "paragraph",
+      "text": "Write access stays with the platform team during the migration window. The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c027",
+      "kind": "paragraph",
+      "text": "Escalation path is documented per region with a named owner. Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c028",
+      "kind": "paragraph",
+      "text": "Known ambiguous cases are listed with their holding status. Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c029",
+      "kind": "heading",
+      "level": 2,
+      "text": "Prior art"
+    },
+    {
+      "id": "blk_c030",
+      "kind": "paragraph",
+      "text": "The 2024 pricing migration failed on a cached plan cap in a second service. Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c031",
+      "kind": "paragraph",
+      "text": "That incident is why caps are read at request time here. The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c032",
+      "kind": "paragraph",
+      "text": "The sheet was kept as authority for two quarters longer than planned. Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c033",
+      "kind": "paragraph",
+      "text": "Handover was never formally completed, which is why ownership is open below. Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c034",
+      "kind": "heading",
+      "level": 2,
+      "text": "Glossary"
+    },
+    {
+      "id": "blk_c035",
+      "kind": "paragraph",
+      "text": "SKU: one expert scope crossed with one paid capability. Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c036",
+      "kind": "paragraph",
+      "text": "Entitlement row: the versioned record granting access to a SKU. The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c037",
+      "kind": "paragraph",
+      "text": "Parity: sheet and matrix resolving to the same row for the same account. Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c038",
+      "kind": "paragraph",
+      "text": "Holding status: an account whose mapping is deferred to manual review. Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c901",
+      "kind": "heading",
+      "level": 2,
+      "text": "Data retention"
+    },
+    {
+      "id": "blk_c902",
+      "kind": "paragraph",
+      "text": "Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c903",
+      "kind": "paragraph",
+      "text": "The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c904",
+      "kind": "paragraph",
+      "text": "Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c905",
+      "kind": "paragraph",
+      "text": "Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c906",
+      "kind": "paragraph",
+      "text": "Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c907",
+      "kind": "heading",
+      "level": 2,
+      "text": "Access control"
+    },
+    {
+      "id": "blk_c908",
+      "kind": "paragraph",
+      "text": "The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c909",
+      "kind": "paragraph",
+      "text": "Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c910",
+      "kind": "paragraph",
+      "text": "Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c911",
+      "kind": "paragraph",
+      "text": "Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c912",
+      "kind": "paragraph",
+      "text": "The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c913",
+      "kind": "heading",
+      "level": 2,
+      "text": "Failure modes"
+    },
+    {
+      "id": "blk_c914",
+      "kind": "paragraph",
+      "text": "Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c915",
+      "kind": "paragraph",
+      "text": "Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c916",
+      "kind": "paragraph",
+      "text": "Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c917",
+      "kind": "paragraph",
+      "text": "The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c918",
+      "kind": "paragraph",
+      "text": "Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c919",
+      "kind": "heading",
+      "level": 2,
+      "text": "Regional rollout order"
+    },
+    {
+      "id": "blk_c920",
+      "kind": "paragraph",
+      "text": "Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c921",
+      "kind": "paragraph",
+      "text": "Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c922",
+      "kind": "paragraph",
+      "text": "The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c923",
+      "kind": "paragraph",
+      "text": "Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c924",
+      "kind": "paragraph",
+      "text": "Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c925",
+      "kind": "heading",
+      "level": 2,
+      "text": "Cost model"
+    },
+    {
+      "id": "blk_c926",
+      "kind": "paragraph",
+      "text": "Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c927",
+      "kind": "paragraph",
+      "text": "The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c928",
+      "kind": "paragraph",
+      "text": "Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c929",
+      "kind": "paragraph",
+      "text": "Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c930",
+      "kind": "paragraph",
+      "text": "Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c931",
+      "kind": "heading",
+      "level": 2,
+      "text": "Open dependencies"
+    },
+    {
+      "id": "blk_c932",
+      "kind": "paragraph",
+      "text": "The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c933",
+      "kind": "paragraph",
+      "text": "Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c934",
+      "kind": "paragraph",
+      "text": "Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c935",
+      "kind": "paragraph",
+      "text": "Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c936",
+      "kind": "paragraph",
+      "text": "The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c937",
+      "kind": "heading",
+      "level": 2,
+      "text": "Review log"
+    },
+    {
+      "id": "blk_c938",
+      "kind": "paragraph",
+      "text": "Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c939",
+      "kind": "paragraph",
+      "text": "Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    },
+    {
+      "id": "blk_c940",
+      "kind": "paragraph",
+      "text": "Backfill runs in batches sized to complete within a single maintenance window, and each batch is independently resumable; a batch that fails partway leaves a checkpoint rather than requiring the whole range to be re-run, which matters because the full range takes longer than any window available."
+    },
+    {
+      "id": "blk_c941",
+      "kind": "paragraph",
+      "text": "The resolution path is defined per region so that a partial failure in one region cannot silently satisfy a request originating in another; the resolver carries the region as part of the lookup key rather than inferring it from the account record, because the account record is itself under migration and may lag by up to one cycle."
+    },
+    {
+      "id": "blk_c942",
+      "kind": "paragraph",
+      "text": "Versioning is append-only. A row is never edited in place, because a billing period already closed against a given row must remain replayable against exactly that row; corrections are expressed as a new version with an effective date, and the reconciliation job reads the version that was in force rather than the current one."
+    },
+    {
+      "id": "blk_c943",
+      "kind": "heading",
+      "level": 2,
+      "text": "Appendix: worked examples"
+    },
+    {
+      "id": "blk_c944",
+      "kind": "paragraph",
+      "text": "Manual review is a queue with an owner and a service level, not a state an account can sit in indefinitely; anything held longer than one cycle escalates automatically, and the escalation carries the specific ambiguity rather than a generic flag so that the reviewer does not have to re-derive it."
+    },
+    {
+      "id": "blk_c945",
+      "kind": "paragraph",
+      "text": "Parity checks compare resolved outcomes rather than stored values, since two representations can differ textually while resolving identically, and a check that compares representations produces noise that trains the team to ignore it. The comparison runs against the same code path production uses."
+    },
+    {
+      "id": "blk_c946",
+      "kind": "paragraph",
+      "text": "The revert switch is exercised on a schedule whether or not it is needed, because a switch that has never been thrown is a switch nobody knows the behavior of; the drill runs in a single low-volume region and the result is recorded with the same audit trail as a real revert."
+    },
+    {
+      "id": "blk_c947",
+      "kind": "paragraph",
+      "text": "Ownership after handover is explicit down to the table level, with a named team for reads and a named team for writes, because the previous migration left this implicit and the resulting ambiguity outlived every person who had context on it."
+    },
+    {
+      "id": "blk_c948",
+      "kind": "paragraph",
+      "text": "Rate limits apply to the resolver rather than to callers, so that a misbehaving integration degrades its own throughput without affecting the shared path; the limit is expressed per credential and is visible to the caller in the response headers."
+    }
+  ],
+  "orphaned_blocks": [],
+  "_note": "orphaned_blocks is written by the API, never by the agent. It is the fixture's ground truth for LH-02 and is what detects_orphans_if_any reads."
+}

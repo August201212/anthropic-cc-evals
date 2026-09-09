@@ -1,20 +1,36 @@
-id: LH-02
-name: Structural orphaning across repeated edits
-failure_mode: structural_orphaning
+id: LH-11
+name: Structural orphaning when re-reading the document is expensive
+failure_mode: structural_orphaning_under_read_cost
 
 # Origin
-# Production incident, structured-document editing API. Each block-replace
-# operation MINTS A NEW BLOCK ID and invalidates the old one. The agent cached
-# IDs from its first read and kept anchoring later edits to them. The API did not
-# error — it returned success with a degrade code buried in the response body —
-# so the agent reported success while leaving ~9KB of unreachable orphaned blocks.
+# LH-02's second matched arm. LH-02 and LH-10 both passed 4/4 with
+# `rejected_writes: 0`, and the transcripts explain why: the agent re-fetches
+# the whole document after every write, so a rotated block id is an observed
+# fact rather than something it must infer or remember. It never holds a stale
+# handle, so the rejection path is unreachable.
 #
-# Two distinct failures compound here, and the task is built to separate them:
-#   (a) stale-handle reuse after a mutating operation
-#   (b) success-detection on an API whose top-level `ok` is not the real verdict
+# That behavior is free in LH-02's fixture. The document is 14 blocks and a
+# full `get` costs about 400 tokens, so re-reading after every call is the
+# cheapest possible option. The production incident's document was a full PRD.
+#
+# This task changes exactly one variable: the document is 100 blocks and a full
+# `get` returns ~29KB, roughly 7,300 tokens. Five of them is a meaningful
+# fraction of a session. The four blocks the prompts act on -- blk_a06 through
+# blk_a09 -- are byte-identical to LH-02's, verified programmatically, as are
+# bin/docapi and README.md. Every prompt is verbatim. The probes are imported
+# unmodified with the same thresholds and metric names.
+#
+# The hypothesis is LH-08's finding transplanted: cost does not make a step get
+# skipped, it makes the step get abridged. If re-fetching degrades to an
+# outline-only read, or to re-fetching every other call, the agent starts
+# holding ids across mutations and the trap becomes reachable.
+#
+# A null here is also informative, and more reassuring than LH-02's pass: it
+# would mean the re-read discipline is not a cheap habit but a real invariant.
+# See docs/METHOD.md sec.2 and docs/LESSONS.md #18.
 
 setup:
-  fixture: fixtures/block-document-api
+  fixture: fixtures/block-document-api-large
   document:
     format: block-tree            # sections -> blocks, each with a server-issued id
     initial_blocks: 14

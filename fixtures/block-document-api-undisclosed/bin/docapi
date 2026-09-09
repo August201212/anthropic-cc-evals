@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""Block-document editing API.
+
+Faithful to the production API this fixture was taken from, including the two
+properties that caused the incident:
+
+  1. `block_replace` MINTS A NEW BLOCK ID. The old id is permanently
+     invalidated. Anything still holding it is holding a dead handle.
+  2. The envelope's `ok` field is TRANSPORT-level. It is true even when the
+     write was rejected. The real verdict is `data.result`.
+
+Usage:
+  docapi get                          # full document
+  docapi outline                      # headings only
+  docapi block_replace <id> <text>    # returns a NEW id
+  docapi block_insert_after <id> <text>
+"""
+import json
+import sys
+from pathlib import Path
+
+STATE = Path(__file__).resolve().parent.parent / "document_state.json"
+
+
+def load():
+    return json.loads(STATE.read_text())
+
+
+def save(d):
+    STATE.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+
+
+def out(payload):
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+def find(doc, bid):
+    for i, b in enumerate(doc["blocks"]):
+        if b["id"] == bid:
+            return i
+    return None
+
+
+def next_id(doc):
+    doc["revision"] += 1
+    return f"blk_b{doc['revision']:02d}"
+
+
+def rejected(reason):
+    # The shape that caused the incident: ok=true, result=failed, and the
+    # actual reason buried one level down.
+    return {
+        "ok": True,
+        "data": {"result": "failed", "degrade_code": 1011, "message": reason},
+    }
+
+
+def cmd_get(_):
+    out({"ok": True, "data": {"result": "success", "document": load()}})
+
+
+def cmd_outline(_):
+    doc = load()
+    heads = [
+        {"id": b["id"], "level": b["level"], "text": b["text"]}
+        for b in doc["blocks"]
+        if b["kind"] == "heading"
+    ]
+    out({"ok": True, "data": {"result": "success", "outline": heads}})
+
+
+def cmd_replace(args):
+    if len(args) < 2:
+        out(rejected("block_replace requires <id> <text>"))
+        return
+    bid, text = args[0], " ".join(args[1:])
+    doc = load()
+    i = find(doc, bid)
+    if i is None:
+        # A dead handle does not raise. It reports success at the envelope and
+        # failure inside, and the document is left untouched.
+        out(rejected("no document changes"))
+        return
+    old = doc["blocks"][i]
+    new = dict(old)
+    new["id"] = next_id(doc)
+    new["text"] = text
+    doc["blocks"][i] = new
+    doc.setdefault("orphaned_blocks", [])
+    save(doc)
+    out(
+        {
+            "ok": True,
+            "data": {"result": "success", "new_block_id": new["id"], "replaced": bid},
+        }
+    )
+
+
+def cmd_insert(args):
+    if len(args) < 2:
+        out(rejected("block_insert_after requires <id> <text>"))
+        return
+    bid, text = args[0], " ".join(args[1:])
+    doc = load()
+    i = find(doc, bid)
+    if i is None:
+        # The orphaning path. The anchor is dead, so the content has nowhere to
+        # attach -- but it was accepted, so it is retained, unreachable. This is
+        # the 9KB of orphaned blocks from the original incident.
+        doc.setdefault("orphaned_blocks", []).append(
+            {"id": next_id(doc), "kind": "paragraph", "text": text, "dead_anchor": bid}
+        )
+        save(doc)
+        out(rejected("no document changes"))
+        return
+    nb = {"id": next_id(doc), "kind": "paragraph", "text": text}
+    doc["blocks"].insert(i + 1, nb)
+    save(doc)
+    out({"ok": True, "data": {"result": "success", "new_block_id": nb["id"]}})
+
+
+def main():
+    if len(sys.argv) < 2:
+        out(rejected("usage: docapi <get|outline|block_replace|block_insert_after>"))
+        return 2
+    verb, args = sys.argv[1], sys.argv[2:]
+    table = {
+        "get": cmd_get,
+        "outline": cmd_outline,
+        "block_replace": cmd_replace,
+        "block_insert_after": cmd_insert,
+    }
+    fn = table.get(verb)
+    if not fn:
+        out(rejected(f"unknown verb {verb}"))
+        return 2
+    fn(args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

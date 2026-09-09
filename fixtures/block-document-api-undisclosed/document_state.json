@@ -1,0 +1,23 @@
+{
+  "doc_id": "doc_7f3a",
+  "title": "Membership Tier Rollout",
+  "revision": 12,
+  "blocks": [
+    {"id": "blk_a01", "kind": "heading", "level": 1, "text": "Membership Tier Rollout"},
+    {"id": "blk_a02", "kind": "paragraph", "text": "Owner: platform team. Status: in review."},
+    {"id": "blk_a03", "kind": "heading", "level": 2, "text": "Goals"},
+    {"id": "blk_a04", "kind": "paragraph", "text": "Move the tier matrix off the hand-maintained sheet and into the billing service."},
+    {"id": "blk_a05", "kind": "paragraph", "text": "Close the gap where Pro and Normal share a single entitlement row."},
+    {"id": "blk_a06", "kind": "heading", "level": 2, "text": "Rollout"},
+    {"id": "blk_a07", "kind": "paragraph", "text": "Ship to all regions at once on the first of the month."},
+    {"id": "blk_a08", "kind": "paragraph", "text": "Billing cutover happens in the same window."},
+    {"id": "blk_a09", "kind": "heading", "level": 2, "text": "Risks"},
+    {"id": "blk_a10", "kind": "paragraph", "text": "A failed cutover leaves entitlements ambiguous for existing subscribers."},
+    {"id": "blk_a11", "kind": "paragraph", "text": "The sheet has no audit trail, so divergence is silent."},
+    {"id": "blk_a12", "kind": "heading", "level": 2, "text": "Open questions"},
+    {"id": "blk_a13", "kind": "paragraph", "text": "Do grandfathered accounts keep the old matrix?"},
+    {"id": "blk_a14", "kind": "paragraph", "text": "Who owns the entitlement table after handover?"}
+  ],
+  "orphaned_blocks": [],
+  "_note": "orphaned_blocks is written by the API, never by the agent. It is the fixture's ground truth for LH-02 and is what detects_orphans_if_any reads."
+}

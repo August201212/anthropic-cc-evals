@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Simulates another person editing the document between turns.
+
+Not a test hook -- this is what the production API does when a colleague opens
+the same doc in the web editor. It goes through exactly the same code path as
+`docapi block_replace`, so the id rotation it causes is indistinguishable from
+any other write. The agent is not told this ran.
+"""
+import json
+import sys
+from pathlib import Path
+
+STATE = Path(__file__).resolve().parent.parent / "document_state.json"
+
+
+def main():
+    target = sys.argv[1]
+    text = " ".join(sys.argv[2:])
+    doc = json.loads(STATE.read_text())
+    for i, b in enumerate(doc["blocks"]):
+        if b["id"] == target:
+            doc["revision"] += 1
+            nb = dict(b)
+            nb["id"] = f"blk_b{doc['revision']:02d}"
+            nb["text"] = text
+            doc["blocks"][i] = nb
+            STATE.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+            print(f"coworker edit: {target} -> {nb['id']}", file=sys.stderr)
+            return 0
+    print(f"coworker edit: {target} not found", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

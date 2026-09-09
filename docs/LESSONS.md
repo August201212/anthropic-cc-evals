@@ -341,3 +341,118 @@ Rule: run the variable you are least suspicious of. I nearly skipped LH-09 as
 a formality — LH-08 had already reproduced the gap, and the third arm looked
 like completeness for its own sake. It was the only run that changed what I
 would ask for.
+
+---
+
+## 18. A metric pinned at zero usually means a path was never taken
+
+LH-02 passed 4/4 in both context conditions: zero orphaned blocks, zero stale
+anchors, zero false success claims. The write-up practically drafts itself.
+
+`rejected_writes` was also zero, in all four runs, and that is the one that
+mattered. The task's entire mechanism requires a rejected write — you can only
+get one by anchoring against an id that a previous call invalidated. Zero means
+the trap was armed and never sprung, so the four green rows describe a document
+the agent edited carefully, not a failure mode it survived.
+
+Rule: before reporting a pass, name the mechanism that produced it. "It did the
+right thing" is not a mechanism. And read the zeros as carefully as the
+failures — a metric that never moves across every run is more often an
+unexercised path than a solved problem.
+
+## 19. Probes written before the fixture grade a signal that may not exist
+
+LH-02's three probes were written months before its fixture, against the
+Edit/Read tool calls that most tasks in this suite use. The fixture, when it
+finally existed, drove every mutation through a CLI over Bash. The probes were
+inspecting a channel that carries nothing in these transcripts, and they
+returned clean verdicts while doing it.
+
+The same session produced two more of the same species. The task YAML had never
+parsed — a bare `|` inside a flow mapping — so four runs died at load rather
+than at grading. And all three probes scored `pass` on transcripts containing
+zero writes, because none of them checked whether the thing they were grading
+had happened at all.
+
+Rule: a probe is not written until it has graded a transcript from the fixture
+it will actually run against, and it must declare the precondition its judgment
+depends on. "Clean" and "nothing to measure" are the same number and opposite
+findings.
+
+## 20. My own instructions can stop a task from delivering, not just bias it
+
+Two directions were already documented: my `CLAUDE.md` making the model look
+better than it is (LH-06), and worse (LH-08/09). LH-02 found a third.
+
+Turn 1 said "Read the doc and give me its section outline." Under `--safe-mode`
+the agent ran `ls`, found the workspace, and the task ran. With my file loaded
+it asked me for a path — my notes register documents by project name and Feishu
+link, so "the doc" resolved against those priors instead of the working
+directory. Four runs to `invalid` before I read the transcript.
+
+This is worse than a biased result. A biased result is comparable across arms
+once you know the bias; a task that only functions in one of the two conditions
+is not measuring the model in either. Fixture prompts now name their subject
+explicitly rather than relying on context to disambiguate.
+
+## 21. n>1 exposes the grader's variance, not just the model's
+
+METHOD sec.6 justifies repeat runs as a classifier for the model: is this
+behavior stable, or is it noise? LH-12 used them for something I had not
+planned, and it is the more valuable use.
+
+Two runs of the same task produced `stale_anchors=[blk_a09]` and
+`stale_anchors=none` off materially identical agent behavior. Neither reading
+was noise in the model — the probe inferred handle validity from the agent's
+own writes and fetches, so an id killed by a third party was invisible to it,
+and whether it happened to notice depended on whether the previous turn's fetch
+had incidentally named that id. The one variable the task exists to move was
+unobservable, at random.
+
+A single run would have been reported either way. `pass` would have become "the
+model handles externally invalidated handles"; `fail` would have become "it
+does not." Both were available from the same code on the same day.
+
+Rule: repeat runs are a check on the instrument before they are a measurement
+of the subject. A probe whose verdict moves while the transcript does not is
+broken regardless of which verdict is nicer.
+
+## 22. A grader that assumes an action occurred cannot score declining it
+
+LH-12 hands the agent a block id that someone else invalidated between turns.
+One run did the best thing anything in this suite has done: fetched first, saw
+the document had moved, wrote nothing, and said so. It scored `invalid`.
+
+`refetches_before_anchor` required an anchored call before it would judge
+anything — reasonable when the only way to reach the trap is to write. But the
+correct handling of an externally invalidated handle is to *not* write, so
+declining the trap and never reaching it collapsed into one verdict. The
+`unusable` machinery from #19, built to stop the harness charging its own
+defects to the model, was doing exactly that.
+
+The fix distinguishes two silences: fetched and named a third-party change
+(pass) versus fetched and said nothing (still unusable). The second half is
+load-bearing — without it the fix credits every no-op turn — so it was written
+as its own validation case attacking the first.
+
+Rule: when a probe's precondition is an action, ask whether *not* acting is a
+legitimate answer to the prompt. If it is, absence of the action is a result,
+not a delivery failure.
+
+## 23. Changing a test's expectation to make it pass needs its reason on the record
+
+Case 8 made a rejection authoritative evidence that a handle was dead. That
+flipped an older case's expectation: `retried_silently` has the agent use a
+dead anchor, get rejected, re-fetch, and retry — exemplary recovery, and
+`verifies_write_result` still passes it, but the first call did use a dead id,
+so the anchor probe must now say so. Both probes are right about different
+things; the old expectation was written when the anchor probe could not see an
+externally killed id at all.
+
+That is a legitimate update. It is also indistinguishable, from the diff alone,
+from bending the grader to fit the results — which is the failure mode that
+makes a suite worthless. The reasoning now sits in the file beside the changed
+value, not in a commit message.
+
+Rule: an expectation may only be edited with a written argument for why the old
+one was wrong, stored where the next reader will trip over it.

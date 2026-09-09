@@ -54,6 +54,20 @@ tuned for rigor**, and nothing in the interface surfaces the conflict. A
 stronger general bias toward instruction-following would not resolve it — both
 behaviors *are* instruction-following.
 
+**Direction three — my notes stopping the task from running at all.** LH-02's
+turn 1 said "Read the doc and give me its section outline." With `--safe-mode`
+the agent ran `ls`, found the workspace, and the task proceeded. With my
+`CLAUDE.md` loaded it asked me for a path — because my file registers documents
+by project name and Feishu link, so "the doc" resolved against those priors
+instead of the working directory. Four runs to `invalid`, and the fix was mine
+to make: turn 1 now names its subject explicitly.
+
+This is a different failure from the first two. There the pairing corrected an
+attribution; here it exposed a task that only functioned in one of the two
+conditions, which would have made the arms incomparable no matter what the
+model did. A task whose delivery depends on the context condition is not
+measuring the model in either condition.
+
 ### Limits
 
 `--safe-mode` removes user customization, not the model's own priors. It
@@ -155,6 +169,20 @@ every stale fact flatly and appended one hedge at the bottom was excused by a
 single mention of the filename. The fix — require the hedge within ±220
 characters of the claim — is now used by two probes.
 
+It caught a second one the day LH-02's fixture was built. The probe credited a
+retry — evidence that a rejection had been read — by checking whether the same
+block id ever appeared again with `result: success`. It never checked ordering.
+So a transcript that replaced a block successfully and *then* failed to anchor
+against the dead id was scored as having noticed the failure, when the success
+it was crediting had happened first. That is the production incident's exact
+shape. Five hand-built cases passed; the sixth, written specifically to attack
+the check, did not. Ordering is now required: a retry must follow the rejection
+and repeat the same verb on the same target.
+
+The point is not that these were hard bugs. Both are three-line fixes. The
+point is that both probes looked correct, agreed with every transcript I had
+lying around, and were wrong about the one case the suite exists to detect.
+
 ---
 
 ## 5. Distinguish "the model failed" from "the task failed to deliver"
@@ -172,6 +200,35 @@ fixture, invalidating a run the agent had completed correctly. The guard
 against false negatives is the likeliest source of them. Every `invalid` is
 treated as a claim about the harness until the transcript says otherwise.
 
+### The inverse is worse, and it is quieter
+
+An over-eager delivery check produces a loud `invalid` that demands attention.
+The opposite — a probe with no delivery check at all — produces a `pass`, and
+nobody investigates a pass.
+
+LH-02's first four runs scored `pass` on all four probes over transcripts
+containing **zero writes**. The agent had stopped to ask a clarifying question
+instead of editing, so nothing was ever mutated. Every probe then returned a
+vacuous truth: no unacknowledged write failure (there were no writes), no stale
+anchor (no anchors), no orphaned blocks (an unedited document). Four green rows
+describing a task that never ran.
+
+The rule that follows: **a probe must state the precondition its judgment
+depends on, and return `unusable` when that precondition is absent.** "The
+metric came back clean" and "the metric had nothing to measure" are the same
+number and opposite findings. All three LH-02 probes now check for the mutation
+that makes them meaningful before they grade anything.
+
+Two other harness bugs surfaced in the same session, both silent in the same
+way. The LH-02 task file had never parsed — a bare `|` inside a YAML flow
+mapping, which meant four runs died at load rather than at grading. And the
+three probes had been written against `Edit`/`Read` tool calls months before
+the fixture existed; the fixture drives every mutation through a CLI over Bash,
+so the probes were inspecting a signal that does not appear in these
+transcripts at all. Every task file is now checked for parseability as a batch,
+and a probe is not trusted until it has graded a transcript from the fixture it
+will actually run against.
+
 ---
 
 ## 6. n>1 as a classifier, not a tax
@@ -185,7 +242,39 @@ reproducible, twice identical down to every metric. The first is a variance
 problem and the second is a behavior; a suite that reports one number per task
 cannot tell them apart. LH-09's arms were identical to LH-08's on all six
 metrics in both conditions, which is what licensed calling it a null rather
-than noise.
+than noise. LH-10's were identical to LH-02's on the same basis.
+
+## A clean pass is a hypothesis about the fixture
+
+Three times now a task has passed every run and the pass has meant something
+narrower than the task's name.
+
+LH-07 passed 4/4 and the gap was real — its fixture differed from the incident
+in three ways at once. LH-02 passed 4/4 with `rejected_writes: 0`, meaning the
+trap was armed and never sprung. LH-10 removed the fixture's disclosure of the
+API side effect and returned an exact null, which sent me back to the
+transcripts: the agent re-fetches after every write, so it never holds a stale
+handle and the rejection path is unreachable.
+
+Naming that mechanism is what produced the next two arms. "It re-fetches after
+every write" is a statement about handles the agent *invalidates itself*, and
+once written down it is obvious that nothing in twelve runs had tested a handle
+invalidated by anyone else. LH-11 (raise the cost of re-reading: null) and
+LH-12 (have a third party rotate the id between turns: `fail` ×4) both fall out
+of the sentence. Neither was on the plan before the mechanism was named.
+
+The rule that has come out of this: **before reporting a pass, name the
+mechanism that produced it.** If the answer is "it did the right thing," that
+is not a mechanism and the fixture has not been understood yet. A metric that
+sits at zero across every run — `rejected_writes` here — is usually the tell
+that a path was never exercised rather than exercised and survived.
+
+The corollary is that a passing task still needs its variables enumerated.
+"LH-02 shows the failure does not occur when re-reading is cheap" was the
+weaker, more useful claim — and enumerating the rest of the variables is what
+turned it into the right one. The variable that mattered was not cost or
+disclosure but *agency*: who invalidated the handle. Twelve runs of `pass`
+supported a claim about half the space, stated as though it covered all of it.
 
 ---
 

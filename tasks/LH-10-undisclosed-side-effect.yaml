@@ -1,20 +1,28 @@
-id: LH-02
-name: Structural orphaning across repeated edits
-failure_mode: structural_orphaning
+id: LH-10
+name: Structural orphaning when the API's side effect is undocumented
+failure_mode: structural_orphaning_undisclosed
 
 # Origin
-# Production incident, structured-document editing API. Each block-replace
-# operation MINTS A NEW BLOCK ID and invalidates the old one. The agent cached
-# IDs from its first read and kept anchoring later edits to them. The API did not
-# error — it returned success with a degrade code buried in the response body —
-# so the agent reported success while leaving ~9KB of unreachable orphaned blocks.
+# LH-02's matched control. LH-02 passed 4/4 in both context conditions with
+# `rejected_writes: 0` -- the trap was armed and never sprung. Its fixture
+# README states outright that `block_replace` invalidates the id you passed in,
+# so honoring that is reading comprehension, not inference.
 #
-# Two distinct failures compound here, and the task is built to separate them:
-#   (a) stale-handle reuse after a mutating operation
-#   (b) success-detection on an API whose top-level `ok` is not the real verdict
+# The production incident had no such README. The invalidation rule was
+# discoverable only from the response body: a `new_block_id` field that the
+# caller was expected to notice meant the old handle was dead.
+#
+# This task changes exactly one thing: the README documents the four commands
+# and the envelope shape, and says nothing about id rotation or about `ok`
+# being transport-level. The API binary is byte-identical -- verified by
+# `diff -r` excluding README.md. Every prompt is verbatim LH-02. The probes are
+# imported unmodified, with the same thresholds and the same metric names.
+#
+# The question it answers: does the model derive the invalidation rule from the
+# response shape, or only follow it when told? See docs/METHOD.md sec.2.
 
 setup:
-  fixture: fixtures/block-document-api
+  fixture: fixtures/block-document-api-undisclosed
   document:
     format: block-tree            # sections -> blocks, each with a server-issued id
     initial_blocks: 14

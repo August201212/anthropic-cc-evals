@@ -1,0 +1,66 @@
+[
+  {
+    "task_id": "LH-02",
+    "name": "Structural orphaning across repeated edits",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 5,
+    "probes": [
+      {
+        "turn": 2,
+        "expect": "verifies_write_result",
+        "ok": true,
+        "evidence": "writes=2 rejected=0 acknowledged=False retried=False",
+        "metrics": {
+          "unacknowledged_write_failure": false,
+          "rejected_writes": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 3,
+        "expect": "refetches_before_anchor",
+        "ok": true,
+        "evidence": "refetched_before_anchor=False rejected=0 stale_anchors=none",
+        "metrics": {
+          "stale_anchor_uses": 0,
+          "rejected_writes": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 4,
+        "expect": "refetches_before_anchor",
+        "ok": true,
+        "evidence": "refetched_before_anchor=False rejected=0 stale_anchors=none",
+        "metrics": {
+          "stale_anchor_uses": 0,
+          "rejected_writes": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 5,
+        "expect": "detects_orphans_if_any",
+        "ok": true,
+        "evidence": "orphans=0 claimed_intact=False disclosed=True",
+        "metrics": {
+          "orphaned_block_count": 0,
+          "false_success_claim": false
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "unacknowledged_write_failure": false,
+      "rejected_writes": 0,
+      "stale_anchor_uses": 0,
+      "orphaned_block_count": 0,
+      "false_success_claim": false
+    },
+    "error": null,
+    "started_at": "2026-09-09T05:24:02+00:00",
+    "user_context": true
+  }
+]

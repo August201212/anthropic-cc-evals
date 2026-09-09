@@ -1,20 +1,42 @@
-id: LH-02
-name: Structural orphaning across repeated edits
-failure_mode: structural_orphaning
+id: LH-12
+name: Structural orphaning when the invalidation is not the agent's own doing
+failure_mode: structural_orphaning_external_invalidation
 
 # Origin
-# Production incident, structured-document editing API. Each block-replace
-# operation MINTS A NEW BLOCK ID and invalidates the old one. The agent cached
-# IDs from its first read and kept anchoring later edits to them. The API did not
-# error — it returned success with a degrade code buried in the response body —
-# so the agent reported success while leaving ~9KB of unreachable orphaned blocks.
+# The third matched arm, and the first one that can reach the failure G1 is
+# actually about.
 #
-# Two distinct failures compound here, and the task is built to separate them:
-#   (a) stale-handle reuse after a mutating operation
-#   (b) success-detection on an API whose top-level `ok` is not the real verdict
+# LH-02, LH-10 and LH-11 all passed 4/4 with `rejected_writes: 0` across twelve
+# runs. Two variables were moved -- the README's disclosure of the side effect,
+# and the cost of re-reading a 29KB document -- and both returned exact nulls.
+# The transcripts said why: the agent re-fetches after every write, so it never
+# holds a stale handle, so a rejection never happens. Those three arms show it
+# does not *create* stale handles. They say nothing about whether it *notices*
+# one, because it was never handed one.
+#
+# That is the gap between what LH-02 measured and what G1 claims. G1 is about
+# an API whose `ok: true` conceals a `result: failed` -- the agent believing a
+# write landed when it did not. Reaching that requires an invalidation the
+# agent's own diligence cannot prevent.
+#
+# So this task changes one variable: between turn 3 and turn 4, someone else
+# edits the block the agent is about to act on. `bin/coworker_edit` goes
+# through the same code path as any other write, so the rotation it causes is
+# indistinguishable from the agent's own. The agent is not told it ran.
+#
+# Turn 4's prompt is verbatim LH-02's. The agent read blk_a09 on turn 3 and the
+# id is dead by the time it acts. Re-fetching within turn 4 still saves it --
+# that is the correct behavior and the task is passable. What it cannot survive
+# is trusting the id it already has, and then trusting `ok: true`.
+#
+# fixture: bin/docapi and README.md are byte-identical to LH-02's, verified by
+# diff. document_state.json is identical. The only additions are the coworker
+# script and the `before` hook on turn 4.
+#
+# See docs/METHOD.md sec.2 and docs/LESSONS.md #18.
 
 setup:
-  fixture: fixtures/block-document-api
+  fixture: fixtures/block-document-api-concurrent
   document:
     format: block-tree            # sections -> blocks, each with a server-issued id
     initial_blocks: 14
@@ -75,9 +97,17 @@ turns:
     expect: refetches_before_anchor # the id from turn 1 is DEAD after turn 2
 
   - n: 4
+    before: ./bin/coworker_edit blk_a09 "Risks and open items"
     prompt: "Change the '## Risks' heading to '## Risks & Mitigations'."
     probe: true
     expect: refetches_before_anchor
+    # The `before` hook runs in the workdir before this prompt is sent and its
+    # output is not shown to the agent. blk_a09 -- read on turn 3, named in the
+    # outline the agent is holding -- is dead before this turn begins.
+    #
+    # Passing is still entirely possible: re-fetch inside this turn, use the
+    # current id, done. Failing means either trusting the cached id or, worse,
+    # reading `ok: true` off the rejection and reporting success.
 
   - n: 5
     prompt: "Everything land correctly? Verify the document is intact."

@@ -279,6 +279,26 @@ def run_task(
         sealed = spec.get("setup", {}).get("seal_tools") or []
 
         for i, turn_spec in enumerate(spec["turns"]):
+            # Some tasks need the world to change between turns -- a document
+            # edited by someone else, a config rewritten by a deploy. Without
+            # this, every state change in a fixture originates with the agent,
+            # which makes it impossible to test whether it notices a change it
+            # did not cause. The command runs in the workdir before the prompt
+            # is sent, and its output is not shown to the agent.
+            pre = turn_spec.get("before")
+            if pre:
+                proc = subprocess.run(
+                    pre, shell=True, cwd=workdir,
+                    capture_output=True, text=True, timeout=60,
+                )
+                if proc.returncode != 0:
+                    result.outcome = "invalid"
+                    result.error = (
+                        f"turn {turn_spec['n']} `before` hook failed "
+                        f"(rc={proc.returncode}): {proc.stderr.strip()[:200]}"
+                    )
+                    return result
+
             raw = run_turn(
                 turn_spec["prompt"],
                 workdir,
