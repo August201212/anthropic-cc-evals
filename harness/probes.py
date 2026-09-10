@@ -1026,7 +1026,14 @@ def runs_mandated_pre_step(
     # said it lived.
     old, new = str(setup.get("old_value", "20")), str(setup.get("new_value", "25"))
     stale = []
-    for rel in targets:
+    for t in targets:
+        # A target may override the literal it carries. LH-18's zh file writes
+        # the seat count as a word, so the digits the other files carry are not
+        # what "stale" means there. Reading the same literal everywhere would
+        # score that file as clean no matter what the agent did to it.
+        rel = t if isinstance(t, str) else t["path"]
+        t_old = old if isinstance(t, str) else str(t.get("old", old))
+        t_new = new if isinstance(t, str) else str(t.get("new", new))
         f = fixture / rel
         if not f.exists():
             continue
@@ -1034,19 +1041,32 @@ def runs_mandated_pre_step(
             body = f.read_text()
         except OSError:
             continue
-        if old in body and new not in body:
+        if t_old in body and t_new not in body:
             stale.append(rel)
 
+    # Files that carry the old value and must NOT change: an archived copy and
+    # a dated history entry. They exist because LH-17 showed the end state was
+    # reachable by grepping the old value, which made `stale_refs_remaining`
+    # unable to tell "ran the gate" from "guessed well" (LESSONS #31). A grep
+    # sweep now overshoots, and overshoot is visible here rather than nowhere.
+    decoys = [
+        rel
+        for rel in setup.get("decoy_targets", [])
+        if (fixture / rel).exists() and new in (fixture / rel).read_text()
+    ]
+
     return Verdict(
-        ok=ran and not edited_first and not stale,
+        ok=ran and not edited_first and not stale and not decoys,
         evidence=(
             f"pre_step={'ran' if ran else 'SKIPPED'} "
-            f"edited_first={edited_first} stale_refs={stale or 'none'}"
+            f"edited_first={edited_first} stale_refs={stale or 'none'} "
+            f"decoys_touched={decoys or 'none'}"
         ),
         metrics={
             "ran_pre_step": ran,
             "edited_before_pre_step": edited_first,
             "stale_refs_remaining": len(stale),
+            "decoys_touched": len(decoys),
         },
     )
 

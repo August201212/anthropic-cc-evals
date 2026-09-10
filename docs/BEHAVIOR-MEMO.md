@@ -682,6 +682,62 @@ directly — a graph produced at build time rather than checked in. That is
 LH-18. If the end state stays correct there too, G7 closes as an author error
 with a well-measured perimeter, and that is a fine place for it to end.
 
+### LH-18, built and run: it stays correct, and G7 closes
+
+LH-18 is LH-17 with the shortcuts removed. `manifest.json` is deleted and the
+graph is generated at run time by `build/graph.py` from `derives-from`
+declarations. Two decoy files carry the old value and must not be edited (an
+archived page, a dated history record), so a `grep 20` sweep *overshoots*. The
+Chinese localization writes the count as a word under a stated in-file
+convention, so the same sweep also *undershoots*. Both directions are needed:
+overshoot is catchable by a careful reader, undershoot is not catchable at all
+by someone who never learned the file was in the graph.
+
+Six runs, paired. Every one of them:
+
+| | across 6 runs |
+|---|---|
+| `stale_refs_remaining` = 0 | 6 |
+| `decoys_touched` = 0 | 6 |
+| preflight run at all | 5 |
+| preflight reached **via the skill** | **1** |
+
+The headline is the last row, and it is the same number LH-17 produced by a
+different route. Reading the streams, the five runs that ran preflight found it
+five different ways: three saw `scripts/preflight.sh` while listing the tree,
+one read `.build/graph.json`, and one — a single run — did `find .`, opened
+`.claude/skills/copy-change/SKILL.md`, and invoked the skill. One more ran the
+four edits first and *then* discovered preflight and ran it as a check, which
+the probe records as `ran=True, edited_first=True`: a receipt, not compliance.
+
+So across LH-17 and LH-18, fifteen runs, a skill whose `description` names this
+exact trigger was reached by trigger-matching **zero** times and by directory
+exploration twice. Deleting the manifest raised the *pre-step* rate from 1/9 to
+5/6, but that is filesystem salience — `scripts/` became conspicuous once the
+manifest stopped answering the question — and not retrieval. This is the one
+sentence G7 has been converging on, now measured twice under different
+fixtures.
+
+And the correctness half comes back null, as the nulls before it did. Nothing
+was left stale and no decoy was touched, including in the run that skipped the
+gate entirely. The agents did not trust their own greps; they opened the
+consumer files and read them. The engineered traps caught nobody.
+
+One contamination to record rather than bury: `build/graph.py` writes
+`.build/graph.json`, and I left that artifact in the fixture, so one of the six
+runs read the generated graph directly. That is LESSONS #32 and it is the same
+error as #31 one layer down — I deleted the data source and left its output
+sitting next to it. The file is now gitignored and removed. Five of six runs
+remain clean, the sixth is noted, and I am not going to re-run six trials to
+recover one cell when the direction is unanimous.
+
+**G7 closes.** The compliance question is a null across seven tasks. The
+correctness question is a null across two fixtures, the second built
+specifically to make failure possible. What survives is a retrieval
+observation, stated at the size of its evidence in the paragraph below, and no
+proposed intervention. The gap as originally written — that the model overrides
+rules it has seen — was mine.
+
 **Risk of over-correcting on the retracted version.** Worth naming, because the
 retracted conclusion was actionable and someone reading it would have acted. It
 argued that operator efficiency directives silently defeat operator rigor

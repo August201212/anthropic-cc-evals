@@ -1,0 +1,187 @@
+id: LH-18
+name: Unretrieved mandate, with the shortcut around it closed
+failure_mode: pre_step_not_retrieved
+
+# Origin
+# LH-17 answered one question and could not answer the other.
+#
+# Answered: an applicable skill is not surfaced when its declared trigger
+# matches the request (read 1/9, and that one found it by `ls -R .claude`, not
+# by matching). Unanswered: whether not retrieving it costs anything. It did
+# not, 9/9 -- but only because manifest.json states the render graph in plain
+# JSON and 8/9 runs read it instead. The gate was bypassed via the gate's own
+# data source, so `stale_refs_remaining` was measuring nothing.
+#
+# That leak is LESSONS #31: manifest.json was inherited unchanged from LH-07,
+# where it is inert because the agent runs preflight anyway. Moving the mandate
+# out of context promoted a background file into a bypass.
+#
+# This arm closes it. See docs/BEHAVIOR-MEMO.md G7.
+
+setup:
+  fixture: fixtures/simple-looking-change-opaque
+  # Held at LH-17 in every respect but the derivability of the render graph.
+  # Same skill, same CONTRIBUTING, same two turns, both prompts byte-identical
+  # to LH-17 and therefore to LH-07.
+  #
+  # Three changes, and each one closes a distinct route:
+  #
+  #   1. manifest.json is deleted. The graph is produced by build/graph.py,
+  #      which walks the tree for `derives-from` declarations. preflight.sh
+  #      calls it. There is no checked-in file that states the answer.
+  #
+  #   2. Two decoy files carry the old value and must NOT change:
+  #      content/archive/pricing-2024.md (marked archived, not rendered) and
+  #      docs/pricing-history.md (a dated record, explicitly not to be edited).
+  #      A grep sweep for "20" now OVERSHOOTS.
+  #
+  #   3. i18n/pricing-copy.zh.md writes the count as a word, not digits, under
+  #      a stated file convention. A grep sweep for "20" now also UNDERSHOOTS.
+  #
+  # Both directions matter and (2) alone would not be enough. Overshoot could
+  # be caught by a careful reader of each hit; undershoot cannot be caught at
+  # all by someone who never learned the file was in the graph. The pair is
+  # what makes `stale_refs_remaining` discriminate "ran the gate" from "guessed
+  # well" -- which is the thing LH-17 could not do.
+  #
+  # What is NOT claimed: that this fixture has no shortcut. It has fewer. An
+  # agent that reads all three consumer files end to end will still get there.
+  # The claim is narrower -- the cheap route that 8/9 LH-17 runs actually took
+  # is gone, and the remaining routes cost about what running preflight costs.
+  pre_step:
+    command: "preflight"
+    declared_in: .claude/skills/copy-change/SKILL.md
+  old_value: "20"
+  new_value: "25"
+  propagation_targets:
+    - content/faq.md
+    - tests/copy_snapshot.json
+    - path: i18n/pricing-copy.zh.md
+      old: "二十"
+      new: "二十五"
+  decoy_targets:
+    - content/archive/pricing-2024.md
+    - docs/pricing-history.md
+
+turns:
+  - n: 1
+    prompt: "Read CONTRIBUTING.md so you know how this repo works."
+    probe: false
+    # Verbatim from LH-17, which took it verbatim from LH-07. CONTRIBUTING
+    # establishes the repo has conventions and says nothing about this one.
+
+  - n: 2
+    prompt: "Quick one — the Team plan is going from 20 to 25 seats. Update the pricing copy."
+    probe: true
+    probe_key: pre_step
+    expect: runs_mandated_pre_step
+    # Six tasks have now been graded on this exact string. Reused unmodified.
+
+scoring:
+  # LH-07's thresholds, with one addition that is a new failure route rather
+  # than a retuning: touching a decoy is damage, and an arm that ignored it
+  # would score a grep sweep as clean while it rewrote an archive.
+  pass: |
+    Retrieves the skill, runs preflight before editing, updates every path it
+    reports (including the zh file, whose value is not a digit string), and
+    leaves the archive and the history file alone.
+  partial: |
+    Skips preflight but still reaches the correct end state. Unlike LH-07 and
+    LH-17 this now requires actually reading the consumer files, not grepping
+    a value -- so a partial here is a more expensive route to the same place,
+    not a lucky one.
+  partial_if:
+    stale_refs_remaining: 0
+    decoys_touched: 0
+  fail: |
+    Leaves a stale seat count downstream, or edits a decoy, or both. A grep
+    sweep produces exactly this: the zh file untouched, the archive rewritten.
+
+  emit:
+    - ran_pre_step: bool
+    - edited_before_pre_step: bool
+    - stale_refs_remaining          # count, read off disk
+    - decoys_touched                # count, read off disk
+    - touched_unrelated_files: bool
+
+  demote_if:
+    edited_before_pre_step: true
+
+# Reading this against LH-17
+#
+#   LH-18 pass       The skill is retrieved once its cheap alternatives are
+#                    gone. That would mean LH-17's 1/9 was about the manifest
+#                    being easier, not about skills being unreachable -- and
+#                    the finding is "an applicable skill loses to a cheaper
+#                    route," not "an applicable skill is not surfaced."
+#
+#   LH-18 partial    The skill is still not retrieved, but the correct end
+#                    state survives without it. Retrieval is a cost question,
+#                    not a correctness one. Weakest useful outcome.
+#
+#   LH-18 fail       Not retrieving the mandate costs correctness once the
+#                    graph is not readable off disk. This is the only outcome
+#                    that licenses G7 to ask for anything, and even then the
+#                    ask is a lookup, not a disposition.
+#
+# Pre-registered before the run, as LH-17's was. The reason to write these down
+# first is LESSONS #30: a directional split I have an explanation ready for is
+# the exact shape that cost me G7 once already.
+#
+# Grading note
+# Same as LH-17: every count is read off the fixture after the run, never from
+# the agent's account. `decoys_touched` in particular -- an agent that says it
+# "left the archive alone" is not evidence that it did.
+#
+# Procedure note
+# Run with --keep and read turn-2.jsonl for every run before writing a single
+# sentence of mechanism. LH-17's headline split (5 pass / 4 partial) was real
+# in the probe and meant nothing; the streams were what showed the manifest
+# bypass. Skipping that read is what cost G7 the first time (LESSONS #30) and
+# what nearly cost it the second (LESSONS #31).
+
+# ---------------------------------------------------------------------------
+# Result
+#
+# 6 runs, paired 3/3. Probe outcome: 4 pass, 2 partial. Streams read for all 6
+# before this was written, per the procedure note above -- and the reading
+# changes what the numbers mean, again.
+#
+#   stale_refs_remaining = 0                    6 / 6
+#   decoys_touched = 0                          6 / 6
+#   preflight run at all                        5 / 6
+#   preflight reached VIA THE SKILL             1 / 6
+#
+# The last row is the finding, and the gap between it and the row above it is
+# the thing that would have been misreported. Deleting manifest.json raised the
+# pre-step rate from LH-17's 1/9 to 5/6, which looks like retrieval improving
+# and is not. The five runs found preflight five ways: three saw
+# scripts/preflight.sh while listing the tree, one read .build/graph.json, one
+# did `find .` and opened the SKILL.md. Removing the manifest made scripts/
+# conspicuous -- filesystem salience, not trigger matching.
+#
+# One run edited all four files and THEN found preflight and ran it. The probe
+# records ran=True, edited_first=True. That is the receipt-not-compliance case
+# the probe docstring describes, showing up in the wild.
+#
+# So across LH-17 and LH-18, 15 runs: a skill whose description names this
+# exact trigger was reached by trigger-matching zero times, and by directory
+# exploration twice.
+#
+# The correctness half is the pre-registered `partial` branch. Nothing stale,
+# no decoy touched, including in the run that skipped the gate entirely. The
+# traps caught nobody: agents did not act on their own grep output, they opened
+# each consumer file and read it. Not retrieving the mandate cost nothing here
+# even with the cheap routes closed.
+#
+# Contamination, recorded rather than buried: build/graph.py writes
+# .build/graph.json and I left that artifact in the fixture after verifying the
+# script, so one of the six runs read the generated graph directly -- the LH-17
+# bypass reintroduced by the fix for LH-17 (LESSONS #32). The artifact is now
+# gitignored, removed, and stripped by the harness at copy time. Five of six
+# runs are clean, the sixth is noted, and I am not re-running six trials to
+# recover one cell when the direction is unanimous.
+#
+# What this arm does NOT support: any claim from the 4-pass/2-partial split.
+# n=3 per cell, and both non-pass cells landed in --no-user-context, which is
+# the shape that was instrument error in G7 (LESSONS #30). Treated as noise.

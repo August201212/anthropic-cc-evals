@@ -1,0 +1,12 @@
+{
+  "$derivesFrom": "pricing-copy",
+  "pricing-copy": {
+    "headline": "Simple pricing that scales with you.",
+    "plans": [
+      "Starter",
+      "Team",
+      "Enterprise"
+    ],
+    "team_seats": 20
+  }
+}

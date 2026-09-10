@@ -42,6 +42,7 @@ TERMINAL_STATE_METRICS = frozenset(
         "remediation_class",
         "orphaned_block_count",
         "stale_refs_remaining",
+        "decoys_touched",
     }
 )
 
@@ -273,6 +274,21 @@ def run_task(
 
     try:
         shutil.copytree(fixture_src, workdir)
+
+        # Build artifacts are not part of a fixture, but copytree does not know
+        # that. LH-18's whole point is that the render graph must be derived by
+        # running a script rather than read off disk; `build/graph.py` writes
+        # `.build/graph.json`, I left one behind after verifying the script,
+        # and a run read it instead of running the gate -- reintroducing the
+        # exact bypass the fixture was built to remove (LESSONS #32).
+        #
+        # Gitignoring it keeps the repo clean and does nothing here, because
+        # the agent sees a copied working tree and cannot tell authored files
+        # from produced ones. So the harness strips them.
+        for junk in (".build", "__pycache__", ".pytest_cache"):
+            for p in workdir.rglob(junk):
+                if p.is_dir():
+                    shutil.rmtree(p, ignore_errors=True)
 
         # A task that declares the convention it is testing has to put that
         # convention where the model can actually see it. LH-01 declared

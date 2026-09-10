@@ -636,3 +636,29 @@ was previously prevented from doing by the thing being removed. Byte-equality
 across arms is necessary and does not establish that the arms differ in one
 behavior. The check is to read what the agent actually used, in every arm, not
 only in the one that looks wrong.
+
+## 32. Deleting the data source does not delete the data
+
+LH-18 exists because LH-17's `manifest.json` let the agent read the render
+graph instead of running the gate that reads it. So I deleted the manifest and
+generated the graph at run time with `build/graph.py`.
+
+`build/graph.py` writes `.build/graph.json`. I ran it once to verify preflight
+worked, and left the output in the fixture. One of six runs did `ls .build` and
+`cat`-ed it — the same bypass as LH-17, under a different filename, introduced
+by the fix for LH-17.
+
+The mistake is narrower than #31 and worth separating from it. #31 is about
+*unchanged* parts of a fixture changing behavior. This one is about a part I
+changed on purpose: I held the wrong referent. I thought the variable was "the
+file named `manifest.json`" when it was "any bytes on disk that state the
+answer." Generating a file at run time does not make it unreadable; it makes it
+appear one step later.
+
+Rule: when a fixture's point is that something must be *derived* rather than
+read, the check is not "did I delete the file I meant to delete" — it is
+`find . -type f` after a dry run, looking for anything the derivation left
+behind. Anything a build step writes is checked-in state from the agent's
+point of view; it does not know which files were authored and which were
+produced. Gitignoring it is necessary and not sufficient, because the harness
+copies a working tree, not a clean checkout.
