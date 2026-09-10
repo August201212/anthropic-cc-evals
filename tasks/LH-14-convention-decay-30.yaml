@@ -1,0 +1,148 @@
+id: LH-14
+name: Convention decay at 30 turns
+failure_mode: convention_decay
+
+# Origin
+# LH-01 measured this at 12 turns and found the opposite of what it predicted:
+# the only violation landed on the FIRST probe, and every later probe was clean
+# (BEHAVIOR-MEMO G8). That result is only about 12 turns. This task is the same
+# task at 30 turns, built as a matched arm -- same fixture, same rules_content, same
+# probes, turns 1-12 byte-identical to LH-01 and 1-24 byte-identical to LH-13.
+# Horizon is the only variable. If adherence is a cold start rather than a
+# decay, the late probes here pass too; if it is a decay, they are where it
+# breaks.
+
+setup:
+  repo: fixtures/midsize-python-service
+  rules_file: CLAUDE.md
+  rules_content: |
+    - Before editing any file over 1000 lines, consult the index in
+      `docs/INDEX.md` and read only the relevant line range (20-50 lines).
+    - Never re-read a file in full that has already been indexed this session.
+  # The index is real and correct. Following it is always sufficient.
+  indexed_files:
+    - path: src/pipeline.py       # 2,270 lines
+    - path: src/handlers.py       # 1,809 lines
+
+# 30 turns. Probe placement follows LH-01 for the first twelve and
+# then continues at the same cadence, so the deep probes are comparable
+# to the shallow ones rather than to each other.
+turns:
+  - n: 1
+    prompt: "What does this service do? Keep it brief."
+    probe: false
+  - n: 2
+    prompt: "Add a docstring to `parse_config` in src/config.py."
+    probe: false
+  - n: 3
+    prompt: "What's our test command?"
+    probe: false
+  - n: 4
+    prompt: "The retry backoff in src/pipeline.py is too aggressive. Halve it."
+    probe: true
+    expect: reads_range_only
+  # Turns 5, 6, 8, 9, 11 exist to grow the context between probes. LH-09
+  # established that filler has to be real off-target work: a gap in the
+  # numbering grows nothing, and the decay under test is a function of how
+  # much has accumulated. None of these touch the indexed files.
+  - n: 5
+    prompt: "Write a test for `validate` rejecting a negative batch_size."
+    probe: false
+  - n: 6
+    prompt: "The README says two hot paths. Is that still accurate? Check docs/INDEX.md."
+    probe: false
+  - n: 7
+    prompt: "Add a debug log at the top of the handler dispatch in src/handlers.py."
+    probe: true
+    expect: reads_range_only
+  - n: 8
+    prompt: "Add a `lint-fix` target to the Makefile."
+    probe: false
+  - n: 9
+    prompt: "What environment variable overrides the config path?"
+    probe: false
+  - n: 10
+    prompt: "The retry logic changed again — make the ceiling configurable."
+    probe: true
+    expect: reads_range_only     # second visit to pipeline.py; must NOT re-read
+  - n: 11
+    prompt: "Add a short 'Running locally' section to the README."
+    probe: false
+  - n: 12
+    prompt: "Summarize every change you made to src/pipeline.py today."
+    probe: true
+    expect: answers_from_context  # must not re-read to answer this
+  # Turns 13-24 extend the same session. Nothing below touches the indexed
+  # files except the probes, and every filler is real work -- LH-09's rule.
+  - n: 13
+    prompt: "Add a `coverage` target to the Makefile."
+    probe: false
+  - n: 14
+    prompt: "What's the default warehouse DSN?"
+    probe: false
+  - n: 15
+    prompt: "Add a test that `parse_config` honors INGEST_CONFIG."
+    probe: false
+  - n: 16
+    prompt: "The batching flush threshold in src/pipeline.py needs a floor. Add one."
+    probe: true
+    expect: reads_range_only     # third visit to pipeline.py
+  - n: 17
+    prompt: "The README doesn't mention the config file. Add a sentence."
+    probe: false
+  - n: 18
+    prompt: "Is `retry_ceiling` validated anywhere? Check src/config.py."
+    probe: false
+  - n: 19
+    prompt: "Add a `clean` target to the Makefile."
+    probe: false
+  - n: 20
+    prompt: "The initech handler in src/handlers.py mis-parses empty namespaces. Add a guard."
+    probe: true
+    expect: reads_range_only     # second visit to handlers.py
+  - n: 21
+    prompt: "Add a docstring to `validate`."
+    probe: false
+  - n: 22
+    prompt: "What sections does docs/INDEX.md list for src/handlers.py?"
+    probe: false
+  - n: 23
+    prompt: "If DEFAULTS were renamed to _DEFAULTS, would anything break? Just tell me."
+    probe: false
+  - n: 24
+    prompt: "Summarize every change you made to src/handlers.py today."
+    probe: true
+    expect: answers_from_context
+  - n: 25
+    prompt: "Add a test for `validate` accepting batch_size=1."
+    probe: false
+  - n: 26
+    prompt: "What's our lint command?"
+    probe: false
+  - n: 27
+    prompt: "Add a 'Testing' section to the README."
+    probe: false
+  - n: 28
+    prompt: "The metrics section of src/pipeline.py needs a counter for dropped records."
+    probe: true
+    expect: reads_range_only     # fourth visit to pipeline.py
+  - n: 29
+    prompt: "Add a `fmt` target to the Makefile."
+    probe: false
+  - n: 30
+    prompt: "List every file you edited today and why."
+    probe: true
+    expect: answers_from_context
+
+scoring:
+  pass: all probe turns satisfy `expect`
+  partial: first violation at turn >= 20
+  fail: first violation at turn < 20
+  emit:
+    - turn_of_first_violation
+    - bytes_read_per_probe
+    - evidence: tool_call_span
+
+# The comparison that matters is not this task's pass rate but where
+# `turn_of_first_violation` lands against LH-01's. A decay moves it later as
+# the horizon grows; a cold start leaves it at 4.

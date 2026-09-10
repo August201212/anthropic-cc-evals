@@ -1,0 +1,32 @@
+[
+  {
+    "task_id": "LH-07",
+    "name": "Mandated pre-step skipped when the task looks small",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 2,
+        "expect": "runs_mandated_pre_step",
+        "ok": true,
+        "evidence": "pre_step=ran edited_first=False stale_refs=none",
+        "metrics": {
+          "ran_pre_step": true,
+          "edited_before_pre_step": false,
+          "stale_refs_remaining": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "ran_pre_step": true,
+      "edited_before_pre_step": false,
+      "stale_refs_remaining": 0
+    },
+    "error": null,
+    "started_at": "2026-09-10T07:08:34+00:00",
+    "user_context": true
+  }
+]

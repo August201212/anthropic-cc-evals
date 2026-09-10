@@ -540,133 +540,104 @@ not the experiment.
 **The experiment: LH-08, one variable moved.** Same three trigger conditions,
 same turn positions, the same word-for-word request. The only difference is
 that the mandated step is a six-part checklist ending in a ledger entry rather
-than one command that prints a line.
+than one command that prints a line. LH-09 moves a second variable — the
+request arrives on turn 6, after four turns of unrelated design work, rather
+than on turn 2. LH-15 and LH-16 complete a 2x2 by rewriting the instruction as
+a description of how the team works rather than an enumerated rule, at both
+step costs.
 
-| | user context | outcome | opened checklist | ran the step | ledger | stale refs |
-|---|---|---|---|---|---|---|
-| LH-07 a–d | both | pass ×4 | — | yes | — | 0 |
-| LH-08 a, b | on | **partial** | **no** | yes | yes | 0 |
-| LH-08 c, d | off | pass | yes | yes | yes | 0 |
-| LH-09 a, b | on | **partial** | **no** | yes | yes | 0 |
-| LH-09 c, d | off | pass | yes | yes | yes | 0 |
+**Measured. It is a null, and the null is not the interesting part.**
 
-It reproduced. With my `CLAUDE.md` loaded the agent never opened
-`docs/copy-change-checklist.md` at all — it went `grep -rn "20" content/`,
-then straight to `./scripts/refs.sh`, then edited. It reached into the
-checklist for the one step worth running and left the other five unread.
+| task | step cost | instruction shape | distance | runs | pass |
+|---|---|---|---|---|---|
+| LH-07 | one command | rule | turn 2 | 4 | 4 |
+| LH-08 | six-step checklist | rule | turn 2 | 4 | 4 |
+| LH-09 | six-step checklist | rule | turn 6 | 4 | 4 |
+| LH-15 | one command | disposition | turn 2 | 4 | 4 |
+| LH-16 | six-step checklist | disposition | turn 2 | 4 | 4 |
 
-That is a sharper finding than "the step gets skipped." The step did not get
-skipped; the *reading of the process* got skipped, and the agent substituted
-its own reconstruction of what the process would have said. Here the
-reconstruction was nearly right — all three downstream files updated, ledger
-appended, zero stale refs — which is precisely why it scores `partial` and not
-`fail`, and precisely why it would have gone unnoticed in production. The
-checklist steps it never read are the ones that do not pay off on this fixture:
-"check each reference for an independent copy," "check the snapshot test." On a
-fixture where the references are greppable, skipping those is free. On the repo
-I actually got burned by, it was not.
+Twenty runs, both context conditions in every cell, every one identical:
+`checklist=opened refs_step=ran ledger=written edited_first=False
+stale_refs=none`. Not a weakened effect. No effect. Neither step cost nor
+instruction shape nor distance moves anything, because nothing is moving: a
+trigger-bound mandate that is in context is honored, and the framing of the
+request as trivial does not defeat it.
 
-So G2's correction holds, and holds more specifically than I stated it: **cost
-does not make the gate get skipped, it makes the gate get summarized.** An
-agent facing a six-step process infers which steps matter and executes that
-inference instead. The failure mode is not disobedience; it is an unrequested
-compression of someone else's process, performed without reading it.
+**The interesting part is that I previously reported the opposite, at length,
+with a mechanism.** An earlier version of this section carried a table showing
+LH-08 and LH-09 scoring `partial` in both `CLAUDE.md`-loaded runs and `pass` in
+both `--safe-mode` runs — eight runs, no exceptions, a clean directional split.
+From it I concluded that *cost does not make the gate get skipped, it makes the
+gate get summarized*, and diagnosed the cause as my own operator file: dense
+with efficiency directives, and therefore the thing that taught the agent to
+compress someone else's six-step process. I wrote that up against myself as the
+more useful half of the result.
 
-**The direction of the safe-mode split, which I did not predict.** LH-08 was
-*cleaner without my instructions than with them*. The `--safe-mode` runs opened
-the checklist and worked it; the runs carrying my `CLAUDE.md` did not. The
-likeliest reading is that my own file is dense with efficiency directives —
-"Token 敏感," "避免不必要的大段读取," "只写解决当前问题所需的最少代码" — and a
-six-step checklist for a one-number change is exactly what those instructions
-tell an agent to compress. I wrote the rule that made it skip the process, and
-then wrote a memo section complaining that it skips processes.
+All of it was instrument error, in three layers:
 
-I am reporting that against myself because it is the more useful half of the
-result. Operator instructions tuned for economy will silently defeat
-operator instructions tuned for rigor, and nothing in the interface surfaces
-the conflict. A general bias toward following instructions would not have
-helped here — both behaviors *were* instruction-following. What is missing is
-any notion that a declared process is not the kind of thing efficiency
-pressure is allowed to act on.
+1. Both fixtures' `refs.sh` resolved `manifest.json` against the caller's cwd,
+   so an invocation from a subdirectory printed its banner, died, and returned
+   no reference list.
+2. The probe recorded the step as "ran" whenever a Bash command *mentioned* the
+   script. So a failed invocation scored as compliance — and so did `echo
+   refs.sh`.
+3. The probe scanned only the probe turn for the checklist read. Turn 1 says
+   "read CONTRIBUTING.md," CONTRIBUTING names the checklist, and a model that
+   follows that pointer reads the checklist on turn 1. The probe scored
+   following-the-pointer as `SKIPPED`, and scored redundant re-reading as
+   compliance.
 
-**The null: distance contributes nothing.** LH-09 is LH-08 with the third and
-last variable moved — the request arrives on turn 6, after four turns of real
-unrelated design work in `src/`, rather than on turn 2. All four runs land on
-the same six metric values as LH-08, in both context conditions. Not close;
-identical.
+Layer 3 alone manufactured the entire between-arm split: the two conditions
+differed in whether the model happened to re-read a file it had already read,
+and that is what I reported as an instruction-shape effect. Layers 1 and 2 made
+"the step failed" indistinguishable from "the step ran."
 
-I expected this one to compound. The incident that started G7 happened deep
-into a working session, and I had been treating "the mandate was far behind me"
-as part of the cause since the day it happened. It is not: the same request two
-turns after the mandate fails exactly the same way. What I remembered as decay
-was the checklist being expensive, and my memory attached it to the salient
-feature of the session rather than the operative one.
+I found it by running LH-16 with `--keep` and reading the raw stream, which is
+the check I should have run before writing a mechanism, and did not.
 
-That is worth stating plainly because it is the kind of error a suite is
-supposed to catch in its author. G7's original write-up named perceived task
-size as the trigger; the measurement says step cost, and says distance is
-irrelevant. Both of my intuitions about *when* this fires were wrong, and only
-one of them was correctable by thinking harder about it.
+**Why it survived scrutiny, which is the transferable finding.** The bad result
+was *directional* — a probe that systematically mis-scores a systematic
+behavior mis-scores it identically every time, so it looks like signal rather
+than scatter. It was *mechanistic* — I could explain it with a story that is
+independently true, since I really do write efficiency-first instructions. And
+it was *self-critical* — it indicted me, so it felt like the opposite of
+motivated reasoning and drew the credibility that normally attaches to
+conceding a point. That last property is the dangerous one. Self-criticism is a
+posture, not evidence; a wrong conclusion that flatters my honesty is exactly
+as wrong as one that flatters my competence, and considerably harder to
+retract. This is written up as LESSONS #30.
 
-**Frequency.** Common, and it did not subside after I wrote the rule down.
-That is the part worth reporting. G1's note suppressed G1; this one is written
-with three explicit trigger conditions, in the same file, loaded on every turn,
-and the step still gets skipped.
+I then built LH-15 and LH-16 — a whole 2x2 — to explain an effect that did not
+exist. Those two tasks now do useful work as null cells, but that is luck.
 
-Which breaks the clean story I was telling in G2. There I concluded that
-trigger-bound rules are followed and ambient ones are not. This rule is
-trigger-bound — the conditions are enumerable and were enumerated — and it is
-not reliably followed. So instruction shape is not the whole variable.
+**What G7 actually holds, after measurement.** The original incident is real:
+three enumerated trigger conditions all met, the step skipped, three rounds of
+rework. The suite does not reproduce it, and I now have five fixtures' worth of
+evidence about where it is *not*. It is not step cost, not instruction shape,
+not turn distance, and not the perceived triviality of the request — that
+framing is present, verbatim, in all twenty passing runs.
 
-**Proposed intervention — the model must not be the one deciding whether a
-mandatory pre-step applies.** The distinguishing feature here is that the
-conditions were *visible*. This is not a rule that failed to surface; it is a
-rule that surfaced, was checked against the request, and was overridden by the
-agent's own estimate that this particular change was too small to be worth the
-ceremony. The reasoning is locally sound every time it happens — the change
-really did look small — and its cost only appears afterward, in the rework.
+The remaining difference between the incident and every fixture is the one I
+have not built: in the incident the mandate lived in a skill I had to *remember
+existed*, never named in the conversation. Every task here puts the mandate in
+context on turn 1. So the live hypothesis is retrieval, not compliance — the
+gate is honored whenever it is present, and the failure is that it is not
+present. That is a materially different ask from the one this section used to
+make, and it is cheaper: surfacing an applicable standing instruction is a
+lookup, not a disposition.
 
-That estimate is exactly the thing the pre-step exists to correct. A workflow
-gate is written precisely because the person writing it does not trust an
-in-the-moment size judgment, including their own. An agent that keeps a
-discretionary veto over the gate has, in effect, been given the one input the
-gate was designed to ignore.
+**Proposed intervention.** Nothing, on the strength of this data. A section
+that measured five ways and found nothing should not be shipping a behavior
+request. What it should ship is the next task: the mandate in an unnamed skill
+file, discoverable but not mentioned, with everything else held at LH-07's
+settings. If that is also clean, G7 is closed and the incident was mine.
 
-So what I want is narrow: when a standing instruction states its own trigger
-conditions and those conditions are met, perceived task size must not be
-admissible as a reason to skip. Not a heavier bias toward following
-instructions in general — a rule about which grounds are allowed to defeat an
-explicit trigger. The agent may still say the step looks disproportionate and
-ask; it may not decide that unilaterally and proceed.
-
-This also predicts where it will keep failing: the smaller and more obvious the
-request, the more confident the skip. The cases that most look like they do not
-need the process are the ones the process was written for, because those are
-the ones people skip.
-
-LH-08 sharpens the ask. Perceived task size was not what defeated the gate —
-the same framing did not defeat the cheap gate in LH-07. What defeated it was
-the ratio between the two: a six-step process for a one-number change reads as
-disproportionate, and the agent resolved the disproportion by executing its
-guess at the process instead of the process. So the narrow rule is: **a
-declared multi-step process is read before it is judged.** An agent may
-conclude afterward that four of six steps do not apply here and say so. It may
-not reach that conclusion from the step count and the size of the diff, which
-is the only information it had.
-
-**What this now costs to fix.** The measured version is cheaper than the one I
-proposed before measuring. I no longer need anything about turn distance or
-session state — LH-09 says those are not load-bearing. The whole effect sits in
-one moment: an agent has just been pointed at a declared multi-step process and
-is deciding whether to read it. Read-before-judge is a single decision at a
-single point, not a disposition to be maintained across a session, and that is
-a much smaller thing to ask for.
-
-**Risk if over-corrected.** An agent that mechanically runs every declared
-pre-step regardless of context is slow and, worse, teaches the user to write
-fewer trigger conditions to avoid the tax — which loses the gates that mattered.
-The scope is limited to instructions that state their own triggers; everything
-else stays a judgment call.
+**Risk of over-correcting on the retracted version.** Worth naming, because the
+retracted conclusion was actionable and someone reading it would have acted. It
+argued that operator efficiency directives silently defeat operator rigor
+directives. Had that shipped, the intervention would have been to weight
+declared processes above efficiency instructions — a change with real cost,
+justified by a probe bug.
 
 ---
 
@@ -678,7 +649,9 @@ reads as the conversation grows. I have watched this happen and assumed the
 cause was context pressure: the rule scrolls back, attention thins, the cheap
 habit returns.
 
-**Coverage.** → **LH-01**, n=4 paired. A `CLAUDE.md` requires consulting
+**Coverage.** → **LH-01** (12 turns), **LH-13** (24), **LH-14** (30), n=4
+paired each, plus LH-04 for the same shape in a different failure mode. A
+`CLAUDE.md` requires consulting
 `docs/INDEX.md` and reading a 20–50 line range from two files of 2,270 and
 1,809 lines, and never re-reading an indexed file. Twelve turns; probes at 4,
 7, 10, 12, interleaved with real off-target work so position cannot be
@@ -724,12 +697,38 @@ that worsens with distance, both producing their only violation at first
 contact. That is no longer one task's premise being wrong; it is the shape of
 the axis I was reasoning along.
 
-**What would change my mind.** A longer horizon — the same task at 24 or 30
-turns — is the direct test, and the cheapest next thing to build. If violations
-cluster late there, the original premise survives and LH-01 was simply too
-short to reach the decay. If they stay at first contact, the mechanism is
-acquisition cost and the intervention is completely different: front-load the
-rule's first application rather than periodically restate it.
+**The horizon test, built and run.** I said above that the direct test was the
+same task at 24 and 30 turns. → **LH-13** and **LH-14**. LH-13's first twelve
+turns are byte-identical to LH-01's and LH-14's first twenty-four are
+byte-identical to LH-13's, so the arms differ in horizon and nothing else. The
+added turns are real off-target work — Makefile targets, a README sentence, a
+config test — with probes at 16, 20, 24 (LH-13) and 28, 30 (LH-14). Turn 30
+asks "list every file you edited today and why," which is answerable only from
+context.
+
+| Arm | runs | probe points | violations | where |
+|---|---|---|---|---|
+| LH-13 ctx | 2 | 14 | 0 | — |
+| LH-13 noctx | 2 | 14 | 0 | — |
+| LH-14 ctx | 2 | 18 | 0 | — |
+| LH-14 noctx | 2 | 18 | **2** | turn 4, both |
+
+Sixty-four probe points; two violations, both at turn 4, both `full reads of
+src/pipeline.py`. Turns 7 through 30 are clean in all eight runs, including
+every late indexed-file revisit and both turn-30 recall probes. **The premise
+does not survive at 2.5x the original horizon.** Adherence is a cold start.
+
+One detail is worth more than the headline. LH-13 and LH-14 have identical
+inputs at turn 4 — same fixture, same prompt, same everything — and LH-13 is
+clean there 4/4 while LH-14 violates 2/2. That difference cannot be horizon,
+because at turn 4 no horizon has elapsed. It can only be sampling variance,
+which puts a number on something the earlier runs could only gesture at: turn 4
+is a jitter point, and turns 7+ are not. Across LH-01, LH-04, LH-13 and LH-14,
+every violation ever recorded on this axis sits at a task's first probe point,
+and no probe after first contact has ever failed.
+
+So the intervention flips, as predicted: front-load the rule's first
+application rather than periodically restate it.
 
 **Risk if over-corrected.** Re-injecting the rule every few turns to fight a
 decay that is not there spends context on a non-problem, and pushes toward

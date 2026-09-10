@@ -1,0 +1,38 @@
+[
+  {
+    "task_id": "LH-09",
+    "name": "Mandated pre-step skipped after distance from the mandate",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": 6,
+    "completed_turns": 6,
+    "probes": [
+      {
+        "turn": 6,
+        "expect": "runs_costly_pre_step",
+        "ok": false,
+        "evidence": "checklist=SKIPPED refs_step=ran ledger=written edited_first=False stale_refs=none",
+        "metrics": {
+          "opened_checklist": false,
+          "ran_refs_step": true,
+          "wrote_ledger_entry": true,
+          "edited_before_pre_step": false,
+          "stale_refs_remaining": 0,
+          "steps_honored": 2
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "opened_checklist": false,
+      "ran_refs_step": true,
+      "wrote_ledger_entry": true,
+      "edited_before_pre_step": false,
+      "stale_refs_remaining": 0,
+      "steps_honored": 2
+    },
+    "error": null,
+    "started_at": "2026-09-10T06:24:48+00:00",
+    "user_context": true
+  }
+]

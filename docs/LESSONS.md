@@ -4,10 +4,13 @@ Notes written while the suite was being built, kept because the mistakes
 generalize beyond these tasks. Every item below cost a wasted run.
 
 The first thirteen are harness bugs — ways the scorer was wrong before the
-model was. The last four are a different kind: mistakes in how I designed the
+model was. The rest are a different kind: mistakes in how I designed the
 experiment or read its output. Those turned out to be the more expensive
 category, because a broken probe announces itself and a badly-scoped
-comparison does not.
+comparison does not. The last one, #30, is the most expensive single item in
+the file: a probe that was wrong in a *directional* way produced a clean,
+mechanistic, self-critical finding that I wrote up and then built two more
+tasks on top of, and that was worth nothing.
 
 This file is chronological and keeps the wrong turns in. `docs/METHOD.md` is
 the distilled version — the rules these mistakes produced, stated once.
@@ -512,3 +515,99 @@ re-pull on turn 4 — the exact behavior LH-04 exists to catch — counted as
 Rule: for every probe, ask what the fixture's only available route to the
 material is, and confirm the probe can see that route. Evasion and blindness
 are the same defect seen from two sides.
+
+## 27. A probe can reward the wrong behavior, not just miss the right one
+
+`runs_costly_pre_step` checked whether the checklist was opened by scanning the
+probe turn's tool calls. LH-16's turn 1 is "read CONTRIBUTING.md"; CONTRIBUTING
+names the checklist but does not inline it, so a model that follows the pointer
+reads the checklist *on turn 1* and has it in context when the probe turn
+begins. Not re-reading it on turn 2 is correct. The probe scored that
+`checklist=SKIPPED`, and scored a run that redundantly re-read the same file as
+compliant.
+
+So the probe was not merely blind (#26). It was **inverted**: it paid for
+redundant work and penalized the behavior the suite exists to encourage. #25
+and #26 produce wrong verdicts; this produces wrong verdicts that point the
+wrong way, which is worse, because the resulting table looks like a finding.
+
+It also manufactured a between-arm difference out of nothing. The two context
+conditions differed only in whether the model happened to re-read a file it
+had already read, and that difference was about to be reported as an
+instruction-shape effect.
+
+Rule: for any probe that grades "did X happen," ask whether X could legitimately
+have happened earlier than the window being scanned, and whether the cheapest
+way to score well is to do redundant work.
+
+## 28. Typing a command's name is not running it
+
+The same probe recorded the reference-enumeration step as honored whenever a
+Bash command mentioned `refs.sh`. Two things defeated that. `echo refs.sh`
+passed. And both fixtures' scripts resolved `manifest.json` against the
+caller's cwd, so `cd content && ../scripts/refs.sh pricing-copy.md` printed its
+banner, died on a missing manifest, returned no `REFS:` line — and scored as
+compliance, while the agent, having learned nothing about the downstream paths,
+had to reconstruct them some other way. That reconstruction is precisely the
+behavior the task exists to distinguish from following the process.
+
+Two defects, one shape: a *proxy* for the thing being measured was measured
+instead of the thing. The fix is to grade the step by its output — the step ran
+if `REFS:` came back — and to fix the script so a correct invocation from any
+cwd actually produces it.
+
+This is #25 again (tool-name matching) in a place I did not think to look,
+which is the point: every probe that keys on a name rather than an effect has
+this hole.
+
+## 29. One bad probe invalidates every task that uses it, not just the one you were looking at
+
+The defect above was found while running LH-16. It was shared by LH-07, LH-08,
+LH-09 and LH-15. Three of those had already been run to n=4 and written up.
+
+Fixing the probe silently would have left a memo whose tables mixed two
+scoring regimes. The results had to be moved to `results/2026-09/superseded/`
+and all five tasks re-run — twenty runs to recover ground already "covered."
+
+Rule: when a probe changes, enumerate every task that calls it and re-run all
+of them. A probe is not owned by the task that exposed its bug.
+
+## 30. The most self-consistent finding was the artifact
+
+This is the one worth keeping above the others.
+
+The three defects above combined to produce, in G7, a clean and directional
+result: with my `CLAUDE.md` loaded the agent never opened the checklist; with
+`--safe-mode` it did. Four runs each way, no exceptions. From that I wrote a
+mechanism — *cost does not make the gate get skipped, it makes the gate get
+summarized* — and a diagnosis: my own file is dense with efficiency directives,
+so I had written the rule that defeated my own rule. I wrote that up as the
+more useful half of the result, against myself.
+
+All of it was instrumentation. After the fixes: **twenty runs across LH-07,
+LH-08, LH-09, LH-15, LH-16, both context conditions, every one `pass` with the
+full process honored.** The effect size is not reduced. It is zero.
+
+Three properties made it hard to doubt, and they are the transferable part:
+
+1. **It was directional.** Noise looks like scatter; this looked like a signal,
+   because a probe that mis-scores a *systematic* behavior mis-scores it the
+   same way every time.
+2. **It was mechanistic.** I could tell a causal story that explained it, and
+   the story was true of the domain — I really do write efficiency-first
+   instructions. A plausible mechanism attached to a bad reading is more
+   durable than the bad reading alone.
+3. **It was self-critical.** The finding indicted me, so it felt like the
+   opposite of motivated reasoning, and I gave it the credibility that
+   normally attaches to conceding a point. Self-criticism is a *posture*, not
+   evidence. A wrong conclusion that flatters my honesty is exactly as wrong
+   as one that flatters my competence, and it is harder to retract.
+
+I then built two further tasks (LH-15, LH-16) on top of it, and ran a full 2x2
+to explain an effect that did not exist.
+
+Rule: the stronger and tidier a result is, re-verify the instrument *before*
+building on it. Specifically — before a null result gets a new hypothesis, and
+before a clean between-arm split gets a mechanism, go read the raw transcript
+of one run of each arm and confirm the metric means what its name says. That
+check costs one run. I skipped it and spent a day.

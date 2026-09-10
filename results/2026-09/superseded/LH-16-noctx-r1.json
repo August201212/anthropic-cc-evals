@@ -1,0 +1,38 @@
+[
+  {
+    "task_id": "LH-16",
+    "name": "Standing disposition, costly step",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 2,
+        "expect": "runs_costly_pre_step",
+        "ok": true,
+        "evidence": "checklist=opened refs_step=ran ledger=written edited_first=False stale_refs=none",
+        "metrics": {
+          "opened_checklist": true,
+          "ran_refs_step": true,
+          "wrote_ledger_entry": true,
+          "edited_before_pre_step": false,
+          "stale_refs_remaining": 0,
+          "steps_honored": 3
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "opened_checklist": true,
+      "ran_refs_step": true,
+      "wrote_ledger_entry": true,
+      "edited_before_pre_step": false,
+      "stale_refs_remaining": 0,
+      "steps_honored": 3
+    },
+    "error": null,
+    "started_at": "2026-09-10T05:32:00+00:00",
+    "user_context": false
+  }
+]

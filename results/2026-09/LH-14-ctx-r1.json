@@ -1,0 +1,123 @@
+[
+  {
+    "task_id": "LH-14",
+    "name": "Convention decay at 30 turns",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 30,
+    "probes": [
+      {
+        "turn": 4,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 5044,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 7,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 1003,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 10,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 946,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 12,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 16,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 2110,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 20,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 1103,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 24,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 28,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 1169,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 30,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "bytes_read_this_probe": 11375,
+      "full_read_count": 0,
+      "full_revisit_count": 0,
+      "unnecessary_reads": 0
+    },
+    "error": null,
+    "started_at": "2026-09-10T06:22:08+00:00",
+    "user_context": true
+  }
+]

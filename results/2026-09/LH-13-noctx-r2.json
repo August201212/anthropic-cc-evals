@@ -1,0 +1,101 @@
+[
+  {
+    "task_id": "LH-13",
+    "name": "Convention decay at 24 turns",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 24,
+    "probes": [
+      {
+        "turn": 4,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 13526,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 7,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 369,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 10,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 0,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 12,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 16,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 2123,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 20,
+        "expect": "reads_range_only",
+        "ok": true,
+        "evidence": "range reads only",
+        "metrics": {
+          "bytes_read_this_probe": 1287,
+          "full_read_count": 0,
+          "full_revisit_count": 0
+        },
+        "unusable": false
+      },
+      {
+        "turn": 24,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "bytes_read_this_probe": 17305,
+      "full_read_count": 0,
+      "full_revisit_count": 0,
+      "unnecessary_reads": 0
+    },
+    "error": null,
+    "started_at": "2026-09-10T06:06:14+00:00",
+    "user_context": false
+  }
+]
