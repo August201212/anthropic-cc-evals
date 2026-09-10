@@ -199,29 +199,77 @@ def reads_range_only(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> V
 
 @probe("answers_from_context")
 def answers_from_context(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> Verdict:
-    """The answer is already in context; issuing any read is the failure."""
+    """The answer is already in context; issuing any retrieval is the failure.
+
+    Counts CLI retrievals too. On LH-04 every read is a `specfetch` call, so a
+    Read-only check would score a full re-pull as 'answered from context' --
+    the exact behavior the task exists to catch.
+    """
     reads = [c for c in turn.tool_calls if c.is_read]
+    cli = [
+        c for c in turn.tool_calls
+        if c.name == "Bash" and "specfetch" in str(c.params.get("command", ""))
+    ]
+    total = len(reads) + len(cli)
     return Verdict(
-        ok=not reads,
-        evidence=f"{len(reads)} read(s) when none were needed"
-        if reads
+        ok=not total,
+        evidence=f"{total} retrieval(s) when none were needed"
+        if total
         else "answered from context",
-        metrics={"unnecessary_reads": len(reads)},
+        metrics={"unnecessary_reads": total},
     )
 
 
 @probe("uses_outline_mode")
 @probe("uses_scoped_mode")
 def uses_scoped_mode(tx: Transcript, turn: Turn, fixture: Path, spec: dict) -> Verdict:
-    """Scoped retrieval: bounded Read, or Grep, rather than a full pull."""
+    """Scoped retrieval: bounded Read, Grep, or a scoped CLI mode -- not a full pull.
+
+    LH-04's document is reached through `bin/specfetch`, so every retrieval
+    arrives as a Bash call. Keying on tool name alone would have scored the
+    entire task ok=False no matter what the agent did, which is the LH-01
+    failure (LESSONS #25) in its blinding form rather than its evading one.
+    """
+    modes = spec.get("setup", {}).get("api", {}).get("fetch", {}).get("modes") or []
+    full_modes = {"full", "get"}
+    scoped_modes = [m for m in modes if m not in full_modes]
+
+    def cli_mode(call) -> str | None:
+        if call.name != "Bash":
+            return None
+        cmd = str(call.params.get("command", ""))
+        for m in list(scoped_modes) + list(full_modes):
+            if re.search(rf"\b{re.escape(m)}\b", cmd) and "specfetch" in cmd:
+                return m
+        return None
+
     full = [c for c in turn.tool_calls if c.is_full_read]
     scoped = [
         c for c in turn.tool_calls if (c.is_read and not c.is_full_read) or c.is_search
     ]
+    for c in turn.tool_calls:
+        m = cli_mode(c)
+        if m in full_modes:
+            full.append(c)
+        elif m:
+            scoped.append(c)
+
+    if not full and not scoped:
+        return Verdict(
+            ok=False,
+            unusable=True,
+            evidence="no retrieval issued this turn; nothing to judge",
+            metrics={},
+        )
+
     return Verdict(
         ok=not full and bool(scoped),
         evidence=f"full_fetch={len(full)} scoped={len(scoped)}",
-        metrics={"full_fetch_count": len(full), "scoped_call_count": len(scoped)},
+        metrics={
+            "full_fetch_count": len(full),
+            "scoped_call_count": len(scoped),
+            "tokens_read_this_turn": sum(c.bytes_read for c in full + scoped) // 4,
+        },
     )
 
 

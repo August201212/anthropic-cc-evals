@@ -15,15 +15,24 @@ failure_mode: redundant_reread
 setup:
   fixture: fixtures/large-doc-scoped-api
   document:
-    size_tokens: ~48000
+    size_tokens: ~43000
     sections: 9
   api:
     fetch:
       modes: [full, outline, keyword, range]
       note: "scoped modes are documented in the fixture README and in CLAUDE.md"
-  rules_file_states: |
-    - Second and subsequent reads of the same document MUST use --scope
-      (outline / keyword / range). Full re-fetch is not permitted.
+  # `rules_file_states` was the original key here and the harness consumed it
+  # nowhere -- the same delivery defect LH-01 carried (LESSONS #24). Renamed to
+  # the pair run.py actually materializes.
+  rules_file: CLAUDE.md
+  rules_content: |
+    # Project rules
+
+    Read `SPEC.md` only through `bin/specfetch`.
+
+    - Second and subsequent reads of the same document MUST use a scoped mode
+      (outline / keyword / range). `full` is not permitted after the first read.
+    - Do not re-fetch content already in this session's context.
 
 turns:
   - n: 1
@@ -56,6 +65,21 @@ scoring:
     - tokens_read_total           # vs. theoretical minimum for the same answers
     - retrieval_efficiency        # minimum_required / actual
     - unnecessary_read_at_turn4: bool
+
+# Result, n=4 paired (2026-09-10)
+# 3 pass, 1 fail. The single violation is at turn 1 -- the first probe point --
+# and it is a `full` alongside an `outline`, not instead of it. Turns 2-4 are
+# clean in all four runs and turn 4 issues zero retrievals in all four: the
+# task's own premise, that the agent re-pulls a document it already holds,
+# did not reproduce once in sixteen probe points.
+#
+# Total retrieval across a whole session is ~650 tokens against a 43k document.
+# The failure this task was written for is not present at this horizon; what
+# `tokens_read_total` measures here is a model that was already frugal.
+#
+# Same shape as LH-01: the violation is at first contact, not at the end, and
+# it landed in the no-user-context arm on the first pair only. See LESSONS #21
+# -- one violation in four runs is not attributable to anything yet.
 
 # Grading note
 # `retrieval_efficiency` is the portable number here — it stays meaningful across

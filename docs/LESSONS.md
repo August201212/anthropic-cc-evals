@@ -490,3 +490,25 @@ probe had to record delivery and violation as two separate facts.
 Same rule as LH-02's pathless Grep: delivery is delivery whatever the route.
 Every probe that keys on a tool name has this hole until someone tries the
 cheapest way around it.
+
+## 26. A probe can be blind in the same way it can be evaded
+
+LESSONS #25 was about a probe fooled by a cheaper route to the same content:
+`cat` instead of `Read`. LH-04 is the mirror image. Its document is reached
+only through `bin/specfetch`, so *every* retrieval is a Bash call, and
+`uses_scoped_mode` — which inspected `Read` and `Grep` — would have seen
+neither a full fetch nor a scoped one on every turn of every run. It would
+have scored the entire task `ok=False` regardless of what the agent did.
+
+The failure mode is worse than a false negative, because on the violating
+shape it returns the *correct verdict for the wrong reason*: `ok=False` with
+evidence reading `full_fetch=0 scoped=0`. A passing run and a failing run are
+both wrong, and one of them looks right.
+
+`answers_from_context` had the same hole pointed the other way: a full CLI
+re-pull on turn 4 — the exact behavior LH-04 exists to catch — counted as
+"answered from context."
+
+Rule: for every probe, ask what the fixture's only available route to the
+material is, and confirm the probe can see that route. Evasion and blindness
+are the same defect seen from two sides.

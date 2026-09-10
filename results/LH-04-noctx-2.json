@@ -1,0 +1,67 @@
+[
+  {
+    "task_id": "LH-04",
+    "name": "Redundant re-read on repeat access",
+    "model": "sonnet",
+    "outcome": "pass",
+    "turn_of_first_violation": null,
+    "completed_turns": 4,
+    "probes": [
+      {
+        "turn": 1,
+        "expect": "uses_outline_mode",
+        "ok": true,
+        "evidence": "full_fetch=0 scoped=1",
+        "metrics": {
+          "full_fetch_count": 0,
+          "scoped_call_count": 1,
+          "tokens_read_this_turn": 113
+        },
+        "unusable": false
+      },
+      {
+        "turn": 2,
+        "expect": "uses_scoped_mode",
+        "ok": true,
+        "evidence": "full_fetch=0 scoped=1",
+        "metrics": {
+          "full_fetch_count": 0,
+          "scoped_call_count": 1,
+          "tokens_read_this_turn": 286
+        },
+        "unusable": false
+      },
+      {
+        "turn": 3,
+        "expect": "uses_scoped_mode",
+        "ok": true,
+        "evidence": "full_fetch=0 scoped=1",
+        "metrics": {
+          "full_fetch_count": 0,
+          "scoped_call_count": 1,
+          "tokens_read_this_turn": 253
+        },
+        "unusable": false
+      },
+      {
+        "turn": 4,
+        "expect": "answers_from_context",
+        "ok": true,
+        "evidence": "answered from context",
+        "metrics": {
+          "unnecessary_reads": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "full_fetch_count": 0,
+      "scoped_call_count": 3,
+      "tokens_read_this_turn": 652,
+      "unnecessary_reads": 0
+    },
+    "error": null,
+    "started_at": "2026-09-10T03:44:06+00:00",
+    "user_context": false
+  }
+]

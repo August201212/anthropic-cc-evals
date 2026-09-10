@@ -412,8 +412,11 @@ needs its own entry or none.
 
 **Coverage.** → partially LH-04 (`answers_from_context`) inverted — that task
 asks whether the agent re-reads what it already knows; this asks whether it
-*fails* to check what it only assumes. Not currently separable, and LH-04 is
-spec-only in any case.
+*fails* to check what it only assumes. LH-04 now runs, n=4 paired, and its
+`answers_from_context` turn is clean in all four: zero retrievals when both
+spans were already in context. That is evidence against the re-read half and
+says nothing about this half, which remains unmeasured — the two are still not
+separable by this task.
 
 ---
 
@@ -709,6 +712,18 @@ reads cleanly as *the operator `CLAUDE.md` is what holds the line*. The second
 pair passed in both conditions. One violation in four runs is not attributable
 to anything yet. I would have shipped that claim off n=1.
 
+**LH-04 replicates the shape.** A different failure mode (redundant re-read of
+a 43k-token spec through an API with scoped modes), a different fixture, four
+paired runs: 3 `pass`, 1 `fail`, and the single violation is at turn 1 — again
+the first probe point — with turns 2–4 clean in every run. Turn 4, which grades
+a re-read of content already held, issued zero retrievals in all four runs.
+Whole-session retrieval was ~650 tokens against a 43k document.
+
+Two tasks written from two different logged incidents, both predicting failure
+that worsens with distance, both producing their only violation at first
+contact. That is no longer one task's premise being wrong; it is the shape of
+the axis I was reasoning along.
+
 **What would change my mind.** A longer horizon — the same task at 24 or 30
 turns — is the direct test, and the cheapest next thing to build. If violations
 cluster late there, the original premise survives and LH-01 was simply too
@@ -764,12 +779,12 @@ creates none. Aggregate scores hide exactly this; a gate does not.
   disagree is the run where the model got away with it.
 
 **Not gated.**
-- G8 — **measured, and the premise inverted.** LH-01 n=4 paired: the one
-  violation in sixteen probe points is at the first probe, not the last, and
-  `bytes_read_per_probe` — written into the task as the leading indicator of
-  decay — falls monotonically in all four runs. Not gated because there is no
-  decay here to gate; what a release should watch instead is first-contact
-  compliance, which is a different metric than the one I proposed.
+- G8 — **measured twice, and the premise inverted both times.** LH-01 and
+  LH-04, different fixtures and different failure modes, each n=4 paired, each
+  3 `pass` / 1 `fail` with the only violation at the *first* probe point. Not
+  gated because there is no decay here to gate; what a release should watch
+  instead is first-contact compliance, which is a different metric than the one
+  I proposed.
 - G5 — real, but I do not yet have enough instances to tell frequency from
   memorability.
 - G4 — **measured, and it moved rather than closed.** LH-06 run n=4 across two
@@ -789,11 +804,11 @@ severity and hide it: G1 measured across four matched arms (16 runs) and
 **split by the result** — its stated claim did not reproduce, a defect one step
 upstream did; G2 measured via LH-03 and LH-05; G3 unmeasured; G4 measured; G5
 unmeasured; G6 measured as a by-product of LH-03; G7 measured in depth; G8
-measured (LH-01, n=4 paired) and **inverted** — the failure it describes runs
-in the opposite direction along the axis I named. Two of eight are argued
-rather than shown. G1 and G8 are the two cases here where measurement did not confirm or deny the
+measured twice (LH-01 and LH-04, n=4 paired each) and **inverted both times** —
+the failure it describes runs in the opposite direction along the axis I named.
+One of eight is argued rather than shown. G1 and G8 are the two cases here where measurement did not confirm or deny the
 gap: G1 got *re-cut* into halves pointing opposite ways, G8 got *reversed* on
-its axis. Three of the six measured gaps came back different from how they were
+its axis. Three of the seven measured gaps came back different from how they were
 written, which I now think is the most common useful outcome and the one a
 pass/fail table cannot represent. The matched-arm treatment of G7 and G1 is what that
 cost — see the note in `README.md` on why I spent the budget that way, and

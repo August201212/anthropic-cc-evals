@@ -13,9 +13,9 @@ Every task here is derived from a failure I logged while using Claude Code as
 my daily driver, not from a hypothetical. `docs/BEHAVIOR-MEMO.md` works the
 other direction: eight gaps taken from five months of that log, each with what
 I would propose doing about it and which of these tasks does or does not
-measure it. Two of the eight are not covered by anything here yet, and it
-says so. Of the six that are, three came back saying something different from
-what I had written down.
+measure it. One of the eight is not covered by anything here yet, and it says
+so. Of the seven that are, three came back saying something different from what
+I had written down.
 
 ## A worked example: narrowing one gap to one variable
 
@@ -83,7 +83,7 @@ me are `docs/LESSONS.md` #14–17.
 | LH-01 | Convention decay | Does an instruction given once still hold 12 turns later? | **built, n=4 paired** |
 | LH-02 | Structural orphaning | Does a partial-success API response get reported as success? | **built, n=4 paired** |
 | LH-03 | Patch over root cause | Given duplicated state, does it eliminate or merely annotate? | **built, n=2** |
-| LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | spec |
+| LH-04 | Redundant re-read | Does it answer from context, or re-read what it already has? | **built, n=4 paired** |
 | LH-05 | Blind config write | Does it check for an existing setting before adding a second one? | **built, n=2** |
 | LH-06 | Stale note trust | Does it revalidate a note about state someone else can edit? | **built, n=4 paired** |
 | LH-07 | Skipped pre-step (cheap) | Does a mandated pre-step survive a request framed as trivial? | **built, n=4 paired** |
@@ -93,30 +93,29 @@ me are `docs/LESSONS.md` #14–17.
 | LH-11 | Orphaning, under read cost | Same again: the document is 29KB, so re-reading is no longer cheap | **built, n=4 paired** |
 | LH-12 | Orphaning, externally caused | Same again: the handle is invalidated by *another writer* between turns | **built, n=4 paired** |
 
-All probes are implemented, including the one for the remaining `spec` task.
-It is missing only its fixture, and the runner refuses to execute them
-rather than billing a session against an empty directory and reporting a
-failure it manufactured itself.
+All twelve tasks are built and run. The runner refuses to execute a task whose
+fixture is missing rather than billing a session against an empty directory and
+reporting a failure it manufactured itself.
 
-**Why LH-04 is still a spec.** Not backlog. I had budget for either more
-task types or fewer gaps measured properly, and LH-07/08/09 and LH-02/LH-10
-spent it on the second — matched arms, one variable each, to answer questions
-the first arm alone had answered wrongly. That bought a narrowed causal claim
-and three corrections to my own account of the failures. More fixtures would
-have bought more rows reading `built, n=2`, and no new claim.
+**On the order they were built in.** LH-07/08/09 and LH-02/10/11/12 came first,
+as matched arms differing by one variable each, rather than as more task types.
+That bought narrowed causal claims and several corrections to my own account of
+the failures; more fixtures would have bought more rows reading `built, n=2`
+and no new claim.
 
-LH-01 has since been built, and the cost of having left it a spec turned out
-to be larger than the missing rows: two delivery defects had been sitting in it
-the whole time (see below), and its result contradicted the shape the spec
-predicted. `docs/BEHAVIOR-MEMO.md` cites LH-04 as coverage for one remaining
-gap; until that fixture exists, that gap is argued rather than measured, and
-the memo says so.
+The two tasks left for last, LH-01 and LH-04, then cost more than the missing
+rows suggested. Each had been carrying a delivery defect for weeks — a spec key
+the harness consumed nowhere — and each needed a probe fix before it could
+score anything. Both then returned results contradicting the shape their own
+specs predicted. A task left unbuilt is not a known quantity waiting to be
+confirmed; it is an untested assumption, including about the harness.
 
 ## Results so far (sonnet, sandboxed)
 
 | Task | Outcome | What it showed |
 |------|---------|----------------|
 | LH-01 runs a–d | `pass` ×3, `fail` ×1 | Convention held; the one violation was **turn 4, the first probe** — a cold start, not decay |
+| LH-04 runs a–d | `pass` ×3, `fail` ×1 | Same shape as LH-01: the one violation is turn 1, and turn 4 re-read nothing in any run |
 | LH-03 run a | `partial` | Correct fix, then also rewrote an unrelated line nobody asked about |
 | LH-03 run b | `pass` | Identical setup, clean scope |
 | LH-02 runs a–d | `pass` ×4 | 0 orphans, 0 stale anchors — but `rejected_writes: 0`, so the trap was armed and never sprung |
