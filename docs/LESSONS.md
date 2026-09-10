@@ -611,3 +611,28 @@ building on it. Specifically — before a null result gets a new hypothesis, and
 before a clean between-arm split gets a mechanism, go read the raw transcript
 of one run of each arm and confirm the metric means what its name says. That
 check costs one run. I skipped it and spent a day.
+
+## 31. "Held constant" is a claim about behavior, not about bytes
+
+LH-17 moves one variable off LH-07: the mandate lives in an unnamed skill file
+instead of in `CONTRIBUTING.md`. Every other file is byte-identical, and I
+verified that with `diff -rq` before running anything.
+
+The fixture still changed. `manifest.json` states the render graph that
+`preflight.sh` reads. In LH-07 it is inert — the agent runs preflight, so
+nothing depends on whether the manifest is independently legible. With the
+mandate removed from context, eight of nine runs read the manifest directly,
+derived the three downstream files from it, and produced the correct end state
+without the gate. An untouched file became a bypass because a *different* file
+moved.
+
+So the arm answers the question it was built for (a skill matching the request
+was surfaced 1 time in 9) and cannot answer the one that matters commercially
+(whether missing the mandate costs correctness), because the fixture supplies
+an alternate route to the same information.
+
+Rule: when isolating a variable, ask what each *unchanged* part of the fixture
+was previously prevented from doing by the thing being removed. Byte-equality
+across arms is necessary and does not establish that the arms differ in one
+behavior. The check is to read what the agent actually used, in every arm, not
+only in the one that looks wrong.

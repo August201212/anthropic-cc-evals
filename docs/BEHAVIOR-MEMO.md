@@ -626,11 +626,61 @@ present. That is a materially different ask from the one this section used to
 make, and it is cheaper: surfacing an applicable standing instruction is a
 lookup, not a disposition.
 
-**Proposed intervention.** Nothing, on the strength of this data. A section
-that measured five ways and found nothing should not be shipping a behavior
-request. What it should ship is the next task: the mandate in an unnamed skill
-file, discoverable but not mentioned, with everything else held at LH-07's
-settings. If that is also clean, G7 is closed and the incident was mine.
+**The retrieval arm, built and run. → LH-17.** The mandate moves out of
+`CONTRIBUTING.md` and into `.claude/skills/copy-change/SKILL.md`, whose body is
+the LH-07 text verbatim and whose frontmatter `description` names the trigger
+in the form the skill loader matches on. Nothing in the session mentions it.
+CONTRIBUTING is not deleted — it is replaced with real, plausible content about
+branches, tests and review that says nothing about this convention, so the
+agent learns the repo has standards and learns nothing about this one. Turn 1
+and turn 2 are byte-identical to LH-07's; the probe is unmodified.
+
+Nine runs. The probe reports 5 `pass` / 4 `partial`, the partials concentrated
+in `--no-user-context`. **That number should not be quoted**, and the reason
+is the whole value of this arm. Counting from the raw streams instead:
+
+| | across 9 runs |
+|---|---|
+| read `.claude/skills/copy-change/SKILL.md` | **1** |
+| read `manifest.json` | 9 |
+| correct end state (`stale_refs=none`) | 9 |
+
+Two findings, and they point in different directions.
+
+**An applicable skill is not surfaced when its trigger conditions are met.**
+One run in nine retrieved it, and it got there by `ls -R .claude` while
+exploring the repo — "There's a repo skill for exactly this" — not by matching
+the request against the description. The other eight never looked in `.claude/`
+at all. That is the narrow question this arm was built for, and it has an
+answer.
+
+**But the arm does not establish that this costs anything**, because the
+fixture leaks. `manifest.json` states the render graph in plain JSON;
+`preflight.sh` reads that same manifest. Eight of nine runs read the manifest
+directly, said some version of *"the manifest lists three other files that
+track this copy, so all four change together,"* and updated all four correctly.
+The gate was bypassed by going to the gate's own data source. So
+`edited_first=True` here is not a skipped process yielding a bad outcome — it
+is a second route to the same information, and the outcome is right every time.
+
+Worth naming precisely because it is a fixture-design failure of mine, not a
+model behavior: the manifest is inherited unchanged from LH-07, where it is
+inert because the agent runs preflight anyway. Moving the mandate out of
+context promoted a background file into a bypass. "Held constant" is a claim
+about what a fixture *does*, not about its bytes, and I checked the bytes.
+
+**Proposed intervention.** Still nothing. What LH-17 licenses is one sentence —
+*a skill whose declared trigger matches the current request is not reliably
+surfaced at the moment it applies* — and that is a statement about retrieval
+plumbing, not about disposition. It is also the cheapest thing on this page to
+fix if it is real: matching a request against skill descriptions is a lookup
+that already exists in the loader.
+
+Before asking for even that, the correctness half needs a fixture where the
+downstream references cannot be derived from anything the agent can read
+directly — a graph produced at build time rather than checked in. That is
+LH-18. If the end state stays correct there too, G7 closes as an author error
+with a well-measured perimeter, and that is a fine place for it to end.
 
 **Risk of over-correcting on the retracted version.** Worth naming, because the
 retracted conclusion was actionable and someone reading it would have acted. It

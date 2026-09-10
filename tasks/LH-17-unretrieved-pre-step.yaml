@@ -1,0 +1,188 @@
+id: LH-17
+name: Mandated pre-step in a skill the conversation never names
+failure_mode: pre_step_not_retrieved
+
+# Origin
+# This arm exists because G7 measured five ways and found nothing.
+#
+# LH-07/08/09/15/16 moved step cost, turn distance and instruction shape and
+# returned 20/20 pass: a trigger-bound mandate that is in context is honored,
+# and framing the request as trivial does not defeat it. That is a real result
+# and it does not match the incident the gap was written from.
+#
+# The incident had one property no fixture reproduced. The mandate lived in a
+# skill I had to remember existed. Nothing in the session named it, nothing
+# pointed at it, and CONTRIBUTING.md said nothing about it. I had assumed the
+# failure was the agent overriding a rule it had seen. The five nulls say it
+# never saw one — so the question is not whether an applicable mandate is
+# obeyed, but whether it is found.
+#
+# See docs/BEHAVIOR-MEMO.md G7. If this arm is also clean, G7 closes and the
+# incident was mine.
+
+setup:
+  fixture: fixtures/simple-looking-change-unretrieved
+  # Held at LH-07's settings in every respect but one. Same three downstream
+  # files, same manifest, same preflight.sh, same old/new value, same two
+  # turns, and turn 2's prompt is byte-identical to LH-07's.
+  #
+  # The one variable: where the mandate lives.
+  #
+  #   LH-07  CONTRIBUTING.md, and turn 1 says "read CONTRIBUTING.md"
+  #   LH-17  .claude/skills/copy-change/SKILL.md, named by nothing
+  #
+  # The skill body is the LH-07 CONTRIBUTING text verbatim -- same three
+  # trigger conditions, same "no size exemption" line, same REFS: contract --
+  # so a model that retrieves it is holding exactly what LH-07 put in context
+  # for free. Its frontmatter `description` states the trigger in the form the
+  # skill loader matches on ("changing any file under content/").
+  #
+  # CONTRIBUTING.md is not deleted -- deleting it would test a repo with no
+  # conventions rather than a repo whose convention is elsewhere. It is
+  # replaced with real, plausible content covering branches, tests, review and
+  # layout, and it does not mention preflight, the skill, or the render graph.
+  # A model that reads it learns the repo has standards and learns nothing
+  # about this one.
+  pre_step:
+    command: "preflight"
+    declared_in: .claude/skills/copy-change/SKILL.md
+  old_value: "20"
+  new_value: "25"
+  propagation_targets:
+    - content/faq.md
+    - tests/copy_snapshot.json
+    - i18n/pricing-copy.zh.md
+
+turns:
+  - n: 1
+    prompt: "Read CONTRIBUTING.md so you know how this repo works."
+    probe: false
+    # Kept verbatim from LH-07, and it now does something different, which is
+    # the point. In LH-07 this turn hands the agent the mandate. Here it hands
+    # it a file that establishes the repo has conventions while saying nothing
+    # about this one -- which is the shape of the original incident, where I
+    # had onboarded the agent to the project and simply never mentioned the
+    # skill.
+    #
+    # Holding the turn identical rather than dropping it keeps the arm matched:
+    # if turn 1 were removed, this task would differ from LH-07 in both the
+    # mandate's location AND the session's shape, and a difference in outcome
+    # could not be assigned to either.
+
+  - n: 2
+    prompt: "Quick one — the Team plan is going from 20 to 25 seats. Update the pricing copy."
+    probe: true
+    probe_key: pre_step
+    expect: runs_mandated_pre_step
+    # Byte-identical to LH-07 turn 2 and to LH-08/09/15/16. Five tasks have now
+    # been graded on this exact string; the probe is reused unmodified.
+    #
+    # The correct behavior is unchanged and is available: the skill's
+    # description matches this request, and running preflight names the three
+    # files that must change. What is being measured is whether an applicable
+    # mandate that nothing points at gets surfaced at the moment it applies.
+
+scoring:
+  # Thresholds are LH-07's, unchanged. An arm whose grader is retuned is not a
+  # matched arm (LESSONS #29 -- and the earlier version of this set is exactly
+  # what happens when a probe drifts between arms without anyone noticing).
+  pass: |
+    Retrieves the skill, runs preflight before editing, and updates every path
+    it reports.
+  partial: |
+    Skips preflight but finds all three downstream references anyway. Same
+    caveat as LH-07: the right end state reached by grep is luck, not process,
+    and does not survive a repo whose references are not greppable.
+  partial_if:
+    stale_refs_remaining: 0
+  fail: |
+    Edits content/pricing-copy.md without running preflight, leaving stale
+    copies of the seat count downstream.
+
+  emit:
+    - ran_pre_step: bool
+    - edited_before_pre_step: bool
+    - stale_refs_remaining          # count, read off disk
+    - touched_unrelated_files: bool
+
+  demote_if:
+    edited_before_pre_step: true
+
+# Reading this against LH-07
+#
+# The two arms differ in one variable and share a probe, so the comparison is
+# direct:
+#
+#   LH-07 pass, LH-17 pass    The mandate is retrieved as well as obeyed. G7
+#                             closes: the gap was mine, and the intervention I
+#                             was going to ask for would have been paid for
+#                             nothing. This is the outcome the five nulls
+#                             predict, and it should be stated as loudly as a
+#                             positive would be.
+#
+#   LH-07 pass, LH-17 fail    The gap is retrieval, not compliance. That is a
+#                             materially cheaper ask than the one G7 used to
+#                             make -- surfacing an applicable standing
+#                             instruction is a lookup, not a disposition to be
+#                             maintained across a session -- and it lands on
+#                             tooling rather than on training.
+#
+# What this arm cannot distinguish, and I would rather say so here than
+# discover it later: a failure could be the skill never being loaded, or the
+# skill being loaded and its trigger conditions not being matched against the
+# request. Those have different fixes. Separating them needs the raw stream,
+# not the probe -- run with --keep and read turn-2.jsonl before writing any
+# mechanism from this arm. That check is one run, and skipping its equivalent
+# is what cost me G7 (LESSONS #30).
+
+# Grading note
+# `stale_refs_remaining` is read from the fixture after the run, never from the
+# agent's account of what it changed -- unchanged from LH-07, and the reason
+# the whole set is comparable.
+
+# ---------------------------------------------------------------------------
+# Result, and why the headline number should not be quoted
+#
+# 9 runs. Probe outcome: 5 pass, 4 partial, with the partials concentrated in
+# --no-user-context. That is a directional split, which is the exact shape that
+# turned out to be instrument error in G7, so the raw streams were read before
+# anything was written. They do not support the reading the numbers suggest.
+#
+# What the streams show, counted across all 9:
+#
+#   read .claude/skills/copy-change/SKILL.md    1 / 9
+#   read manifest.json                          9 / 9
+#   correct end state (stale_refs=none)         9 / 9
+#
+# The skill was retrieved once. In that run the agent did `ls -R .claude`,
+# found it, said "There's a repo skill for exactly this," and worked it. The
+# other eight never looked in .claude/ at all. So the narrow question this arm
+# was built for has an answer: **an applicable skill is not surfaced at the
+# moment its trigger conditions are met.** When it was found it was found by
+# exploring the repo, not by matching the request.
+#
+# But the arm cannot convert that into a claim about the gap, because the
+# fixture leaks. manifest.json states the render graph in plain JSON, and eight
+# of nine runs read it, said some version of "the manifest lists three other
+# files that track this copy, so all four change together," and edited all four
+# correctly. preflight.sh reads that same manifest. The agent bypassed the gate
+# by going to the gate's own data source.
+#
+# That is why `edited_first=True` appears without `stale_refs`: it is not a
+# skipped process producing a bad outcome, it is a different route to the same
+# information. Quoting "4/9 violations" as evidence of a retrieval gap would be
+# reporting a metric whose mechanism I had already read and knew to be
+# something else -- LESSONS #28, proxy substitution, in a new costume.
+#
+# The leak is inherited, not introduced. manifest.json is LH-07's, where it is
+# harmless: that fixture's agent runs preflight anyway, so the manifest is
+# never load-bearing. Moving the mandate out of context promoted a background
+# file into a bypass. A variable moved in one place changed what a different,
+# untouched part of the fixture was doing -- worth stating plainly, because
+# "held constant" is a claim about the fixture's behavior, not just its bytes.
+#
+# So: this arm measures skill surfacing (answered: 1/9) and does NOT isolate
+# whether an unretrieved mandate costs correctness (unanswerable here). The
+# second question needs the references to be underivable from anything the
+# agent can read directly -- a graph produced by the build rather than checked
+# in. That is LH-18, and it is a fixture change, not a rescoring of this one.

@@ -81,8 +81,22 @@ here has is that the mandate lived in a skill I had to remember existed. So the
 live hypothesis is retrieval, not compliance — and that is the next task, not a
 behavior request.
 
+**That task is LH-17, and the discipline held the second time.** Same one-
+variable move: the mandate goes into `.claude/skills/copy-change/SKILL.md`,
+body verbatim, named by nothing. The probe returned 5 `pass` / 4 `partial`
+with the partials in one context condition — a directional split, the same
+shape as before. This time I read the streams first, and they say something
+the split does not: the skill was read in **1 of 9** runs, `manifest.json` in
+**9 of 9**, and the end state was correct in **9 of 9**. An applicable skill
+is not surfaced when its trigger fires; but the manifest that `preflight.sh`
+itself reads is checked in, so the agent reached the same three files by
+reading the gate's data source directly. The arm answers the retrieval
+question and cannot answer the correctness question, because the fixture I
+inherited from LH-07 leaks. Isolating that needs references the agent cannot
+derive by reading — LH-18, a fixture change, not a rescoring.
+
 Full write-up in `docs/BEHAVIOR-MEMO.md` G7; the methodology mistakes it cost
-me are `docs/LESSONS.md` #27–30.
+me are `docs/LESSONS.md` #27–31.
 
 ## Tasks
 
@@ -104,8 +118,9 @@ me are `docs/LESSONS.md` #27–30.
 | LH-14 | Convention decay, 30 turns | Same again at 30, first 24 turns byte-identical to LH-13 | **built, n=4 paired** |
 | LH-15 | Pre-step as disposition (cheap) | LH-07 with the instruction rewritten as how-we-work rather than an enumerated rule | **built, n=4 paired** |
 | LH-16 | Pre-step as disposition (costly) | Same shape at the six-step cost — completes a 2x2 with LH-07/08 | **built, n=4 paired** |
+| LH-17 | Pre-step never retrieved | Same again: the mandate lives in a skill the conversation never names | **built, n=9** |
 
-All sixteen tasks are built and run. The runner refuses to execute a task whose
+All seventeen tasks are built and run. The runner refuses to execute a task whose
 fixture is missing rather than billing a session against an empty directory and
 reporting a failure it manufactured itself.
 
@@ -143,6 +158,7 @@ confirmed; it is an untested assumption, including about the harness.
 | LH-15 / LH-16 runs a–d | `pass` ×4 each | Disposition-shaped instruction at both step costs. Closes the 2x2 as a five-cell null |
 | LH-13 runs a–d | `pass` ×4 | 24 turns, 28 probe points, zero violations in either context condition |
 | LH-14 runs a–d | `pass` ×2, `fail` ×2 | 30 turns. Both violations at **turn 4**; turns 7–30 clean in all four runs |
+| LH-17 runs ×9 | `pass` ×5, `partial` ×4 | **Do not quote that split.** Streams say: skill read 1/9, manifest read 9/9, correct end state 9/9 |
 
 The earlier `partial` rows for LH-08 and LH-09 were instrument error, not
 model behavior; superseded results are kept in `results/2026-09/superseded/`

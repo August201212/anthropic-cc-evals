@@ -1,0 +1,32 @@
+[
+  {
+    "task_id": "LH-17",
+    "name": "Mandated pre-step in a skill the conversation never names",
+    "model": "sonnet",
+    "outcome": "partial",
+    "turn_of_first_violation": 2,
+    "completed_turns": 2,
+    "probes": [
+      {
+        "turn": 2,
+        "expect": "runs_mandated_pre_step",
+        "ok": false,
+        "evidence": "pre_step=ran edited_first=True stale_refs=none",
+        "metrics": {
+          "ran_pre_step": true,
+          "edited_before_pre_step": true,
+          "stale_refs_remaining": 0
+        },
+        "unusable": false
+      }
+    ],
+    "metrics": {
+      "ran_pre_step": true,
+      "edited_before_pre_step": true,
+      "stale_refs_remaining": 0
+    },
+    "error": null,
+    "started_at": "2026-09-10T09:07:56+00:00",
+    "user_context": false
+  }
+]
